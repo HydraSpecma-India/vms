@@ -24,7 +24,128 @@ interface PassBadgeModalProps {
 
 export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps) {
   const handlePrint = () => {
-    window.print();
+    const badgeElement = document.getElementById('printable-badge');
+    if (!badgeElement) {
+      window.print();
+      return;
+    }
+
+    // Create a hidden print iframe to isolate ONLY the badge content
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      window.print();
+      return;
+    }
+
+    const badgeHtml = badgeElement.outerHTML;
+
+    iframeDoc.open();
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Visitor Pass - ${visitor.pass_id}</title>
+          <style>
+            @page {
+              size: 80mm auto;
+              margin: 0mm;
+            }
+            html, body {
+              width: 80mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background-color: #ffffff !important;
+              color: #000000 !important;
+              font-family: Arial, Helvetica, sans-serif !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            * {
+              box-sizing: border-box !important;
+            }
+            #printable-badge {
+              width: 80mm !important;
+              max-width: 80mm !important;
+              margin: 0 !important;
+              padding: 4mm 3mm !important;
+              background-color: #ffffff !important;
+              color: #000000 !important;
+            }
+            .text-center { text-align: center; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
+            .w-full { width: 100%; }
+            .flex { display: flex; }
+            .flex-col { display: flex; flex-direction: column; }
+            .items-center { align-items: center; }
+            .justify-between { justify-content: space-between; }
+            .justify-center { justify-content: center; }
+            .flex-1 { flex: 1 1 0%; }
+            .border { border: 1px solid #000000; }
+            .border-b { border-bottom: 1px solid #000000; }
+            .border-b-2 { border-bottom: 2px solid #000000; }
+            .border-dotted { border-style: dotted; border-color: #94a3b8; }
+            .font-bold { font-weight: 700; }
+            .font-black { font-weight: 900; }
+            .font-mono { font-family: monospace; }
+            .font-semibold { font-weight: 600; }
+            .font-extrabold { font-weight: 800; }
+            .uppercase { text-transform: uppercase; }
+            .my-1 { margin-top: 4px; margin-bottom: 4px; }
+            .my-1.5 { margin-top: 6px; margin-bottom: 6px; }
+            .my-2 { margin-top: 8px; margin-bottom: 8px; }
+            .mt-0.5 { margin-top: 2px; }
+            .mt-1 { margin-top: 4px; }
+            .mt-5 { margin-top: 20px; }
+            .mb-1 { margin-bottom: 4px; }
+            .py-0.5 { padding-top: 2px; padding-bottom: 2px; }
+            .py-1 { padding-top: 4px; padding-bottom: 4px; }
+            .px-1 { padding-left: 4px; padding-right: 4px; }
+            .p-1.5 { padding: 6px; }
+            .p-3 { padding: 12px; }
+            .text-xs { font-size: 11px; }
+            .text-sm { font-size: 13px; }
+            .text-base { font-size: 15px; }
+            .text-\\[10px\\] { font-size: 10px; }
+            .text-\\[9px\\] { font-size: 9px; }
+            .text-\\[8.5px\\] { font-size: 8.5px; }
+            .leading-tight { line-height: 1.2; }
+            .leading-snug { line-height: 1.3; }
+            .leading-none { line-height: 1; }
+            .w-28 { width: 112px; }
+            .h-28 { height: 112px; }
+            .w-20 { width: 80px; }
+            .w-3\\/4 { width: 75%; }
+            .mx-auto { margin-left: auto; margin-right: auto; }
+            .object-cover { object-fit: cover; }
+            .break-words { overflow-wrap: break-word; }
+            .space-y-1 > * + * { margin-top: 4px; }
+            .space-y-0.5 > * + * { margin-top: 2px; }
+          </style>
+        </head>
+        <body>
+          ${badgeHtml}
+        </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    iframe.contentWindow?.focus();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    }, 250);
   };
 
   const checkInDate = new Date(visitor.check_in_time);
@@ -42,8 +163,8 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
   const formattedDateTime = `${day}-${monthStr}-${year} ${formattedHours}:${minutes} ${ampm}`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto print-modal-backdrop">
-      <div className="bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-800 animate-in fade-in zoom-in duration-200 print-modal-container">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto no-print-backdrop">
+      <div className="bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-800 animate-in fade-in zoom-in duration-200">
         {/* Modal Header (hidden in print) */}
         <div className="bg-slate-950 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800 no-print">
           <div className="flex items-center space-x-2">
@@ -58,11 +179,11 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
           </button>
         </div>
 
-        {/* 80mm Thermal Printer Printable Area */}
-        <div className="p-4 bg-white text-black flex justify-center overflow-x-auto print:p-0 print:bg-white">
+        {/* 80mm Thermal Printer Badge Container */}
+        <div className="p-4 bg-white text-black flex justify-center overflow-x-auto">
           <div
             id="printable-badge"
-            className="w-[280px] bg-white text-black p-3 font-sans flex flex-col items-center border border-slate-200 print:border-0"
+            className="w-[280px] bg-white text-black p-3 font-sans flex flex-col items-center border border-slate-200"
             style={{ color: '#000000', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
           >
             {/* Top Header */}
@@ -152,7 +273,7 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
               </span>
             </div>
 
-            {/* Security Notice Footer */}
+            {/* Return Notice Footer */}
             <div className="w-full text-center mt-1.5 pt-1.5 border-t border-dotted border-slate-400 text-[8.5px] text-slate-700 leading-tight space-y-0.5">
               <p>This pass must be worn visibly at all times.</p>
               <p>Please return pass at security gate upon departure.</p>
@@ -166,7 +287,7 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
             onClick={handlePrint}
             className="flex-1 inline-flex items-center justify-center px-5 py-3 bg-brand-gold text-slate-950 font-black text-sm rounded-xl hover:bg-amber-400 shadow-xl transition"
           >
-            <Printer className="w-4 h-4 mr-2" /> Print 80mm Badge
+            <Printer className="w-4 h-4 mr-2" /> Print 80mm Badge Only
           </button>
           <button
             onClick={onClose}
