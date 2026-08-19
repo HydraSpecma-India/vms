@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { UserCheck, Users, FileText, UserCog, Shield, LogIn, LogOut } from 'lucide-react';
+import { UserCheck, Users, FileText, UserCog, Shield, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
 import { getStoredSession, setStoredSession, UserSession } from '@/lib/auth';
 
 export default function Navbar() {
@@ -21,10 +21,10 @@ export default function Navbar() {
     router.push('/');
   };
 
-  // Build nav items dynamically based on auth session
   const navItems = [];
 
   if (session) {
+    navItems.push({ label: 'Analytics Dashboard', href: '/dashboard', icon: LayoutDashboard });
     navItems.push({ label: 'Visitor Kiosk', href: '/kiosk', icon: UserCheck });
     navItems.push({ label: 'Active Visitors', href: '/active', icon: Users });
     navItems.push({ label: 'History & Reports', href: '/reports', icon: FileText });
@@ -39,7 +39,7 @@ export default function Navbar() {
       <div className="w-full px-4 sm:px-6 lg:px-10">
         <div className="flex items-center justify-between h-16">
           {/* Logo & Corporate Title */}
-          <Link href={session ? '/kiosk' : '/'} className="flex items-center space-x-3 group">
+          <Link href={session ? '/dashboard' : '/'} className="flex items-center space-x-3 group">
             <div className="bg-brand-gold p-2 rounded-xl text-slate-950 shadow-md group-hover:scale-105 transition transform">
               <Shield className="w-6 h-6" />
             </div>
@@ -62,7 +62,7 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
                     isActive
                       ? 'bg-brand-gold text-slate-950 shadow-md'
                       : 'text-slate-300 hover:bg-slate-800 hover:text-white'

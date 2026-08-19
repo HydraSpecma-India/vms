@@ -4,28 +4,49 @@
 
 @layer base {
   body {
-    @apply bg-slate-900 text-slate-100 antialiased font-sans min-h-screen;
+    @apply bg-slate-950 text-slate-100 antialiased font-sans min-h-screen;
   }
 }
 
-/* Print styles for visitor badge printing */
+/* 80mm Thermal Printer Print Styles */
 @media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  
+  html, body {
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: white !important;
+    color: black !important;
+  }
+
   body * {
     visibility: hidden;
   }
+
   #printable-badge, #printable-badge * {
     visibility: visible;
   }
+
   #printable-badge {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 20px;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    padding: 8mm 4mm !important;
+    margin: 0 !important;
     background-color: white !important;
     color: black !important;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
   }
+
   .no-print {
     display: none !important;
   }

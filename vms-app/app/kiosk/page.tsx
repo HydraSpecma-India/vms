@@ -7,7 +7,7 @@ import { getStoredSession } from '@/lib/auth';
 import WebcamCapture from '@/components/WebcamCapture';
 import PassBadgeModal from '@/components/PassBadgeModal';
 import ReturningVisitorModal from '@/components/ReturningVisitorModal';
-import { UserCheck, Building, Mail, Phone, User, Users, Briefcase, Camera, CheckCircle2, History, ChevronDown } from 'lucide-react';
+import { UserCheck, Building, Mail, Phone, User, Users, Briefcase, Camera, CheckCircle2, History, ChevronDown, AlertCircle } from 'lucide-react';
 
 interface Employee {
   id: string;
@@ -51,7 +51,6 @@ export default function VisitorKioskPage() {
   ];
 
   useEffect(() => {
-    // Check if user is logged in
     const session = getStoredSession();
     if (!session) {
       router.push('/');
@@ -107,8 +106,19 @@ export default function VisitorKioskPage() {
     e.preventDefault();
     setErrorMsg(null);
 
+    // Mandatory Validation
     if (!fullName.trim() || !mobile.trim()) {
       setErrorMsg('Full Name and Mobile Number are required.');
+      return;
+    }
+
+    if (!whoToMeet.trim()) {
+      setErrorMsg('Host Information (Who to Meet) is mandatory.');
+      return;
+    }
+
+    if (!photo) {
+      setErrorMsg('Visitor Photo is mandatory. Please open camera or upload an image.');
       return;
     }
 
@@ -244,7 +254,8 @@ export default function VisitorKioskPage() {
       </div>
 
       {errorMsg && (
-        <div className="bg-rose-950/60 border border-rose-800 text-rose-300 p-4 rounded-2xl text-xs font-semibold">
+        <div className="bg-rose-950/60 border border-rose-800 text-rose-300 p-4 rounded-2xl text-xs font-semibold flex items-center">
+          <AlertCircle className="w-4 h-4 mr-2 shrink-0 text-rose-400" />
           {errorMsg}
         </div>
       )}
@@ -255,11 +266,11 @@ export default function VisitorKioskPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center border-b md:border-b-0 md:border-r border-slate-800 pb-6 md:pb-0 md:pr-8">
               <h3 className="text-xs font-bold text-brand-gold uppercase tracking-wider mb-4 flex items-center">
-                <Camera className="w-4 h-4 mr-1.5" /> Visitor Photo
+                <Camera className="w-4 h-4 mr-1.5" /> Visitor Photo <span className="text-brand-gold ml-1">*</span>
               </h3>
               <WebcamCapture onCapture={setPhoto} capturedPhoto={photo} />
               <p className="text-[11px] text-slate-400 mt-4 text-center">
-                Take a photo or upload an image for the visitor badge pass.
+                Photo is mandatory for security badge printing.
               </p>
             </div>
 
@@ -295,7 +306,7 @@ export default function VisitorKioskPage() {
                     <input
                       type="tel"
                       required
-                      placeholder="e.g. +91 9876543210"
+                      placeholder="e.g. 08883666586"
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
                       className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
@@ -339,12 +350,13 @@ export default function VisitorKioskPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="relative">
                   <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Who to Meet (Host)
+                    Who to Meet (Host) <span className="text-brand-gold">*</span>
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
+                      required
                       placeholder="Search host employee name..."
                       value={whoToMeet}
                       onChange={(e) => handleHostSearch(e.target.value)}
