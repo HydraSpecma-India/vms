@@ -38,12 +38,6 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
   const formattedDateTime = `${day}-${monthStr}-${year} ${formattedHours}:${minutes} ${ampm}`;
 
   const handlePrint = () => {
-    const badgeElement = document.getElementById('printable-badge');
-    if (!badgeElement) {
-      window.print();
-      return;
-    }
-
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -59,7 +53,13 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
       return;
     }
 
-    const badgeHtml = badgeElement.outerHTML;
+    const photoHtml = visitor.photo_url
+      ? `<img src="${visitor.photo_url}" alt="${visitor.full_name}" style="width: 112px; height: 112px; object-fit: cover; border: 1px solid #000000;" />`
+      : `<div style="width: 112px; height: 112px; border: 1px solid #000000; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">[ NO PHOTO ]</div>`;
+
+    const deptHtml = visitor.host_department
+      ? `<div style="font-weight: 600; font-size: 10px; color: #1e293b; margin-top: 2px;">${visitor.host_department}</div>`
+      : '';
 
     iframeDoc.open();
     iframeDoc.write(`
@@ -85,23 +85,24 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
             * {
               box-sizing: border-box !important;
             }
-            #printable-badge {
+            .badge-container {
               width: 80mm !important;
               max-width: 80mm !important;
               margin: 0 !important;
               padding: 4mm 3mm !important;
               background-color: #ffffff !important;
               color: #000000 !important;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
             }
             .text-center { text-align: center; }
             .text-left { text-align: left; }
             .text-right { text-align: right; }
             .w-full { width: 100%; }
             .flex { display: flex; }
-            .flex-col { display: flex; flex-direction: column; }
-            .items-center { align-items: center; }
             .justify-between { justify-content: space-between; }
-            .justify-center { justify-content: center; }
+            .justify-center { justify-content: flex-end; }
             .flex-1 { flex: 1 1 0%; }
             
             .border-box-solid { border: 1.5px solid #000000; }
@@ -141,16 +142,82 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
             .leading-snug { line-height: 1.3; }
             .leading-none { line-height: 1; }
             
-            .w-28 { width: 112px; }
-            .h-28 { height: 112px; }
-            .w-3\\/4 { width: 75%; }
             .mx-auto { margin-left: auto; margin-right: auto; }
-            .object-cover { object-fit: cover; }
             .break-words { overflow-wrap: break-word; }
           </style>
         </head>
         <body>
-          ${badgeHtml}
+          <div class="badge-container">
+            <div className="text-center w-full">
+              <h2 style="font-size: 15px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; margin: 0; line-height: 1.2;">
+                VISITOR PASS
+              </h2>
+              <div style="font-weight: 800; font-size: 12px; margin-top: 2px; line-height: 1.2;">
+                HydraSpecma India
+              </div>
+              <div style="border-bottom: 1.5px solid #000000; width: 100%; margin: 6px 0;"></div>
+            </div>
+
+            <div style="width: 100%; border: 1.5px solid #000000; text-align: center; padding: 4px; margin: 4px 0;">
+              <span style="font-family: monospace; font-weight: 900; font-size: 13px; letter-spacing: 1px;">
+                ${visitor.pass_id}
+              </span>
+            </div>
+
+            <div style="margin: 8px 0; display: flex; justify-content: center;">
+              ${photoHtml}
+            </div>
+
+            <div style="width: 100%; font-size: 11px; line-height: 1.3; margin: 6px 0;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
+                <span style="font-weight: 800; text-transform: uppercase;">NAME</span>
+                <span style="font-weight: 700; text-align: right; word-break: break-word; padding-left: 8px;">${visitor.full_name}</span>
+              </div>
+              <div style="display: flex; justify-between; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
+                <span style="font-weight: 800; text-transform: uppercase;">COMPANY</span>
+                <span style="font-weight: 500; text-align: right; word-break: break-word; padding-left: 8px;">${visitor.company || '-'}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
+                <span style="font-weight: 800; text-transform: uppercase;">MOBILE</span>
+                <span style="font-weight: 500; text-align: right; padding-left: 8px;">${visitor.mobile}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
+                <span style="font-weight: 800; text-transform: uppercase;">PURPOSE</span>
+                <span style="font-weight: 500; text-align: right; padding-left: 8px;">${visitor.purpose || 'General'}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
+                <span style="font-weight: 800; text-transform: uppercase;">VISITORS</span>
+                <span style="font-weight: 500; text-align: right; padding-left: 8px;">${visitor.number_of_visitors || 1}</span>
+              </div>
+            </div>
+
+            <!-- Host Box with Department Under Host Name -->
+            <div style="width: 100%; border: 1.5px solid #000000; padding: 8px; margin: 8px 0; text-align: left;">
+              <div style="font-weight: 900; font-size: 10px; text-transform: uppercase; line-height: 1;">TO MEET:</div>
+              <div style="font-weight: 700; font-size: 12px; margin-top: 4px; line-height: 1.2;">${visitor.who_to_meet || '-'}</div>
+              ${deptHtml}
+            </div>
+
+            <div style="width: 100%; text-align: center; margin: 6px 0;">
+              <div style="border-bottom: 1.5px solid #000000; width: 100%; margin-bottom: 4px;"></div>
+              <span style="font-weight: 800; font-size: 11px; text-transform: uppercase;">
+                CHECK-IN: <span style="font-weight: 400;">${formattedDateTime}</span>
+              </span>
+              <div style="border-bottom: 1.5px solid #000000; width: 100%; margin-top: 4px;"></div>
+            </div>
+
+            <div style="width: 100%; text-align: center; margin-top: 24px; margin-bottom: 8px;">
+              <div style="border-bottom: 1.5px solid #000000; width: 75%; margin: 0 auto 4px auto;"></div>
+              <span style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">
+                HOST SIGNATURE
+              </span>
+            </div>
+
+            <div style="width: 100%; text-align: center; margin-top: 8px; padding-top: 8px; border-top: 1px dotted #a1a1aa; font-size: 8px; color: #334155; line-height: 1.2;">
+              <p style="margin: 0;">This pass must be worn visibly at all times.</p>
+              <p style="margin: 2px 0 0 0;">Please return pass at security gate upon departure.</p>
+            </div>
+          </div>
         </body>
       </html>
     `);
@@ -168,7 +235,7 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-800 animate-in fade-in zoom-in duration-200">
-        {/* Modal Header (hidden in print) */}
+        {/* Modal Header */}
         <div className="bg-slate-950 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800 no-print">
           <div className="flex items-center space-x-2">
             <ShieldCheck className="w-5 h-5 text-brand-gold" />
@@ -195,7 +262,7 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
                 VISITOR PASS
               </h2>
               <div className="font-extrabold text-xs text-black leading-tight mt-0.5">
-                HydraSpecma
+                HydraSpecma India
               </div>
               <div className="border-b-2 border-black w-full my-1.5"></div>
             </div>
@@ -222,7 +289,7 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
               )}
             </div>
 
-            {/* Clean Visitor Details Field Rows */}
+            {/* Visitor Info Field Rows */}
             <div className="w-full text-xs leading-snug my-1.5">
               <div className="flex justify-between border-dotted-line py-1">
                 <span className="font-extrabold uppercase text-black">NAME</span>
@@ -254,14 +321,12 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
             <div className="w-full border-box-solid p-2 my-2 text-left">
               <span className="font-black text-[10px] uppercase block leading-none text-black">TO MEET:</span>
               <span className="font-bold text-xs block mt-1 leading-tight text-black">{visitor.who_to_meet || '-'}</span>
-              {visitor.host_department ? (
-                <span className="text-[10px] block text-slate-800 font-semibold mt-0.5 leading-tight">{visitor.host_department}</span>
-              ) : (
-                <span className="text-[10px] block text-slate-500 font-semibold mt-0.5 leading-tight">-</span>
+              {visitor.host_department && (
+                <span className="text-[10px] block text-slate-800 font-semibold mt-1 leading-tight">{visitor.host_department}</span>
               )}
             </div>
 
-            {/* Check-In Timestamp with Solid Top & Bottom Lines */}
+            {/* Check-In Timestamp */}
             <div className="w-full text-center my-1.5">
               <div className="border-b-2 border-black w-full mb-1"></div>
               <span className="font-extrabold text-xs uppercase text-black">
@@ -270,9 +335,9 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
               <div className="border-b-2 border-black w-full mt-1"></div>
             </div>
 
-            {/* Solid Host Signature Line */}
+            {/* Host Signature Line */}
             <div className="w-full text-center mt-6 mb-2">
-              <div className="border-b-2 border-black w-4/5 mx-auto mb-1"></div>
+              <div className="border-b-2 border-black w-3/4 mx-auto mb-1"></div>
               <span className="text-[9px] font-extrabold text-black tracking-wider uppercase">
                 HOST SIGNATURE
               </span>
@@ -286,7 +351,7 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
           </div>
         </div>
 
-        {/* Action Buttons (hidden in print) */}
+        {/* Action Buttons */}
         <div className="bg-slate-950 border-t border-slate-800 px-6 py-4 flex space-x-3 no-print">
           <button
             onClick={handlePrint}

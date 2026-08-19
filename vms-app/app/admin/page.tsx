@@ -181,9 +181,10 @@ export default function AdminPage() {
     try {
       const { error } = await supabase.from('visitors').delete().eq('id', id);
       if (error) throw error;
-      setMsg({ type: 'success', text: `Visitor '${passId}' deleted successfully.` });
+      setMsg({ type: 'success', text: `Visitor record '${passId}' deleted successfully.` });
       fetchVisitors();
     } catch (err: any) {
+      console.error('Delete visitor error:', err);
       setMsg({ type: 'error', text: err.message || 'Failed to delete visitor record.' });
     }
   };
