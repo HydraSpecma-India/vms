@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { UserCheck, Users, FileText, UserCog, Shield, LogIn, LogOut, KeyRound } from 'lucide-react';
+import { UserCheck, Users, FileText, UserCog, Shield, LogIn, LogOut } from 'lucide-react';
 import { getStoredSession, setStoredSession, UserSession } from '@/lib/auth';
 
 export default function Navbar() {
@@ -21,24 +21,28 @@ export default function Navbar() {
     router.push('/');
   };
 
+  // Default nav items for public view (hides Employee Directory by default)
   const navItems = [
     { label: 'Check-In Kiosk', href: '/', icon: UserCheck },
     { label: 'Active Visitors', href: '/active', icon: Users },
     { label: 'History & Reports', href: '/reports', icon: FileText },
-    { label: 'Employee Directory', href: '/employees', icon: UserCog },
   ];
 
-  if (session && session.role === 'admin') {
-    navItems.push({ label: 'Admin Management', href: '/admin', icon: Shield });
+  // Show Employee Directory and Admin links when logged in
+  if (session) {
+    navItems.push({ label: 'Employee Directory', href: '/employees', icon: UserCog });
+    if (session.role === 'admin') {
+      navItems.push({ label: 'Admin Management', href: '/admin', icon: Shield });
+    }
   }
 
   return (
-    <header className="bg-brand-navy border-b border-slate-800 text-white shadow-xl no-print">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="bg-slate-900 border-b border-slate-800 text-white shadow-xl no-print w-full">
+      <div className="w-full px-4 sm:px-6 lg:px-10">
         <div className="flex items-center justify-between h-16">
-          {/* Logo & Corporate Title */}
+          {/* Logo & Title */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="bg-brand-gold p-2 rounded-xl text-slate-900 shadow-md group-hover:scale-105 transition transform">
+            <div className="bg-brand-gold p-2 rounded-xl text-slate-950 shadow-md group-hover:scale-105 transition transform">
               <Shield className="w-6 h-6" />
             </div>
             <div>
@@ -51,7 +55,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Navigation Links */}
+          {/* Nav Links */}
           <nav className="hidden md:flex space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -60,7 +64,7 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
                     isActive
                       ? 'bg-brand-gold text-slate-950 shadow-md'
                       : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -73,10 +77,10 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Auth State & Logout / Login */}
+          {/* Auth Button */}
           <div className="flex items-center space-x-3">
             {session ? (
-              <div className="flex items-center space-x-3 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+              <div className="flex items-center space-x-3 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
                 <div className="text-right">
                   <span className="font-bold block text-slate-100">{session.username}</span>
                   <span className="text-[10px] text-brand-gold font-bold uppercase block">{session.role}</span>
@@ -92,7 +96,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="inline-flex items-center px-3.5 py-2 bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl hover:bg-brand-gold hover:text-slate-900 transition shadow"
+                className="inline-flex items-center px-4 py-2 bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl hover:bg-brand-gold hover:text-slate-950 transition shadow"
               >
                 <LogIn className="w-4 h-4 mr-1.5 text-brand-gold" /> Admin Login
               </Link>

@@ -119,7 +119,7 @@ export default function VisitorKioskPage() {
 
       let photoUrl = '';
 
-      // 2. Upload photo if newly captured
+      // 2. Upload photo if newly captured base64
       if (photo && photo.startsWith('data:image')) {
         try {
           const base64Data = photo.replace(/^data:image\/\w+;base64,/, '');
@@ -145,7 +145,7 @@ export default function VisitorKioskPage() {
           photoUrl = photo;
         }
       } else if (photo) {
-        photoUrl = photo; // existing photo URL
+        photoUrl = photo; // existing URL
       }
 
       // 3. Insert visitor record
@@ -207,10 +207,10 @@ export default function VisitorKioskPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* HydraSpecma Hero Banner */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-gold/10 rounded-full blur-2xl pointer-events-none"></div>
+    <div className="w-full space-y-6">
+      {/* HydraSpecma Hero Banner - Full Fit Size */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 w-full">
+        <div className="absolute -top-10 -right-10 w-48 h-48 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div>
           <div className="flex items-center space-x-2 mb-2">
@@ -219,11 +219,11 @@ export default function VisitorKioskPage() {
             </span>
             <span className="text-xs text-brand-gold font-bold">• HydraSpecma Corporate</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
             Visitor Registration
           </h1>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-lg">
-            Welcome to HydraSpecma! Please register below to receive your visitor badge pass.
+          <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl">
+            Welcome to HydraSpecma India Private Limited! Please register below to receive your visitor badge pass.
           </p>
         </div>
 
@@ -232,11 +232,11 @@ export default function VisitorKioskPage() {
           <button
             type="button"
             onClick={() => setIsReturningModalOpen(true)}
-            className="inline-flex items-center px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-brand-gold/50 text-brand-gold font-bold text-xs rounded-2xl shadow-lg transition"
+            className="inline-flex items-center px-5 py-3 bg-slate-800 hover:bg-slate-700 border border-brand-gold/60 text-brand-gold font-bold text-xs rounded-2xl shadow-xl transition transform hover:scale-105"
           >
             <History className="w-4 h-4 mr-2" /> Returning Visitor?
           </button>
-          <span className="text-[10px] text-slate-500 mt-1">Quick lookup & re-issue pass</span>
+          <span className="text-[10px] text-slate-400 mt-1">Quick lookup & re-issue pass</span>
         </div>
       </div>
 
@@ -246,86 +246,86 @@ export default function VisitorKioskPage() {
         </div>
       )}
 
-      {/* Main Registration Card */}
-      <div className="bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden p-6 sm:p-8 text-slate-100">
+      {/* Main Registration Card - Full Fit Size */}
+      <div className="bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden p-6 sm:p-10 text-slate-100 w-full">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left: Webcam Capture */}
-            <div className="flex flex-col items-center border-b md:border-b-0 md:border-r border-slate-800 pb-6 md:pb-0 md:pr-6">
-              <h3 className="text-xs font-bold text-brand-gold uppercase tracking-wider mb-3 flex items-center">
+            <div className="flex flex-col items-center border-b md:border-b-0 md:border-r border-slate-800 pb-6 md:pb-0 md:pr-8">
+              <h3 className="text-xs font-bold text-brand-gold uppercase tracking-wider mb-4 flex items-center">
                 <Camera className="w-4 h-4 mr-1.5" /> Visitor Photo
               </h3>
               <WebcamCapture onCapture={setPhoto} capturedPhoto={photo} />
-              <p className="text-[11px] text-slate-400 mt-3 text-center">
-                Take a photo or upload an image for your badge pass.
+              <p className="text-[11px] text-slate-400 mt-4 text-center">
+                Take a clear photo or upload an image for your visitor pass badge.
               </p>
             </div>
 
             {/* Right: Visitor Details Form */}
-            <div className="md:col-span-2 space-y-4">
+            <div className="md:col-span-2 space-y-5">
               <h3 className="text-xs font-bold text-slate-300 border-b border-slate-800 pb-2 uppercase tracking-wider">
                 Visitor Information
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
                     Full Name <span className="text-brand-gold">*</span>
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
                       required
                       placeholder="e.g. John Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
                     Mobile Number <span className="text-brand-gold">*</span>
                   </label>
                   <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                     <input
                       type="tel"
                       required
                       placeholder="e.g. +91 9876543210"
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Email Address</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Email Address</label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                     <input
                       type="email"
                       placeholder="john@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Company / Organization</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Company / Organization</label>
                   <div className="relative">
-                    <Building className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Building className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
                       placeholder="e.g. Acme Corp"
                       value={company}
                       onChange={(e) => setCompany(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
                     />
                   </div>
                 </div>
@@ -335,21 +335,21 @@ export default function VisitorKioskPage() {
                 Visit & Host Information
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {/* Host Auto-complete */}
                 <div className="relative">
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
                     Who to Meet (Host)
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
                       placeholder="Search host employee name..."
                       value={whoToMeet}
                       onChange={(e) => handleHostSearch(e.target.value)}
                       onFocus={() => whoToMeet && setShowEmployeeDropdown(true)}
-                      className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
                     />
                   </div>
 
@@ -360,7 +360,7 @@ export default function VisitorKioskPage() {
                           key={emp.id}
                           type="button"
                           onClick={() => selectEmployee(emp)}
-                          className="w-full text-left px-3.5 py-2 text-xs hover:bg-slate-800 border-b border-slate-800/60 last:border-0 flex flex-col"
+                          className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-slate-800 border-b border-slate-800/60 last:border-0 flex flex-col"
                         >
                           <span className="font-bold text-white">{emp.display_name}</span>
                           <span className="text-brand-gold text-[10px]">{emp.department} • {emp.job_title}</span>
@@ -371,27 +371,27 @@ export default function VisitorKioskPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Host Department</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Host Department</label>
                   <div className="relative">
-                    <Briefcase className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Briefcase className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
                       placeholder="e.g. Engineering"
                       value={hostDepartment}
                       onChange={(e) => setHostDepartment(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
                     />
                   </div>
                 </div>
 
                 {/* Purpose of Visit Select Option */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Purpose of Visit</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Purpose of Visit</label>
                   <div className="relative">
                     <select
                       value={purpose}
                       onChange={(e) => setPurpose(e.target.value)}
-                      className="w-full pl-3 pr-8 py-2.5 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition appearance-none cursor-pointer"
+                      className="w-full pl-3.5 pr-8 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition appearance-none cursor-pointer"
                     >
                       <option value="">Select purpose of visit</option>
                       {purposeOptions.map((opt) => (
@@ -400,21 +400,21 @@ export default function VisitorKioskPage() {
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Number of Visitors</label>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Number of Visitors</label>
                   <div className="relative">
-                    <Users className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Users className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                     <input
                       type="number"
                       min={1}
                       max={50}
                       value={numberOfVisitors}
                       onChange={(e) => setNumberOfVisitors(parseInt(e.target.value) || 1)}
-                      className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
                     />
                   </div>
                 </div>
