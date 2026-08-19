@@ -120,8 +120,9 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
             .my-2 { margin-top: 8px; margin-bottom: 8px; }
             .mt-0.5 { margin-top: 2px; }
             .mt-1 { margin-top: 4px; }
-            .mt-4 { margin-top: 16px; }
+            .mt-6 { margin-top: 24px; }
             .mb-1 { margin-bottom: 4px; }
+            .mb-2 { margin-bottom: 8px; }
             
             .py-0.5 { padding-top: 2px; padding-bottom: 2px; }
             .py-1 { padding-top: 4px; padding-bottom: 4px; }
@@ -221,7 +222,7 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
               )}
             </div>
 
-            {/* Clean Visitor Information Field Rows (No outer box lines) */}
+            {/* Clean Visitor Details Field Rows */}
             <div className="w-full text-xs leading-snug my-1.5">
               <div className="flex justify-between border-dotted-line py-1">
                 <span className="font-extrabold uppercase text-black">NAME</span>
@@ -249,12 +250,14 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
               </div>
             </div>
 
-            {/* Enclosed Host Box */}
+            {/* Enclosed Host Box with Department Under Host Name */}
             <div className="w-full border-box-solid p-2 my-2 text-left">
               <span className="font-black text-[10px] uppercase block leading-none text-black">TO MEET:</span>
               <span className="font-bold text-xs block mt-1 leading-tight text-black">{visitor.who_to_meet || '-'}</span>
-              {visitor.host_department && (
+              {visitor.host_department ? (
                 <span className="text-[10px] block text-slate-800 font-semibold mt-0.5 leading-tight">{visitor.host_department}</span>
+              ) : (
+                <span className="text-[10px] block text-slate-500 font-semibold mt-0.5 leading-tight">-</span>
               )}
             </div>
 
@@ -267,15 +270,15 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
               <div className="border-b-2 border-black w-full mt-1"></div>
             </div>
 
-            {/* Host Signature Line */}
+            {/* Solid Host Signature Line */}
             <div className="w-full text-center mt-6 mb-2">
-              <div className="border-b border-black w-3/4 mx-auto mb-1"></div>
-              <span className="text-[9px] font-bold text-slate-700 tracking-wider uppercase">
+              <div className="border-b-2 border-black w-4/5 mx-auto mb-1"></div>
+              <span className="text-[9px] font-extrabold text-black tracking-wider uppercase">
                 HOST SIGNATURE
               </span>
             </div>
 
-            {/* Clean Security Notice Footer (No outer box) */}
+            {/* Security Notice Footer */}
             <div className="w-full text-center mt-2 pt-2 border-dotted-line text-[8px] text-slate-700 leading-tight">
               <p>This pass must be worn visibly at all times.</p>
               <p className="mt-0.5">Please return pass at security gate upon departure.</p>
