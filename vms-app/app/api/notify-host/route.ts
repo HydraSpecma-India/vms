@@ -28,7 +28,9 @@ export async function POST(request: Request) {
       auth: { user, pass },
     });
 
-    const checkInTimeStr = new Date(visitor.check_in_time).toLocaleString('en-US', {
+    // Format strictly in Indian Standard Time (IST - Asia/Kolkata)
+    const checkInTimeStr = new Date(visitor.check_in_time).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
       dateStyle: 'full',
       timeStyle: 'short',
     });
@@ -39,7 +41,6 @@ export async function POST(request: Request) {
     // Attach visitor photo if present
     if (visitor.photo_url) {
       if (visitor.photo_url.startsWith('data:image')) {
-        // Base64 image attachment
         const base64Data = visitor.photo_url.replace(/^data:image\/\w+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
         attachments.push({
@@ -49,7 +50,6 @@ export async function POST(request: Request) {
         });
         photoHtml = `<img src="cid:visitor_photo_cid" alt="${visitor.full_name}" style="width: 130px; height: 130px; object-fit: cover; border-radius: 12px; border: 3px solid #ffcc00; display: block; margin: 0 auto;" />`;
       } else {
-        // External URL image attachment via CID
         attachments.push({
           filename: `${visitor.pass_id}.jpg`,
           path: visitor.photo_url,
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
               </tr>
               <tr>
                 <td style="padding: 12px 16px; font-weight: bold; color: #64748b;">Check-In Time:</td>
-                <td style="padding: 12px 16px; color: #0f172a; font-weight: 600;">${checkInTimeStr}</td>
+                <td style="padding: 12px 16px; color: #0f172a; font-weight: 600;">${checkInTimeStr} (IST)</td>
               </tr>
             </table>
 
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
     };
 
     await transporter.sendMail(mailOptions);
-    return NextResponse.json({ success: true, message: 'Gmail notification with attached photo sent to host' });
+    return NextResponse.json({ success: true, message: 'Gmail notification sent in Indian Standard Time (IST)' });
   } catch (error: any) {
     console.error('Failed to send Gmail host notification:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
