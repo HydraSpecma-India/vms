@@ -28,8 +28,7 @@ export default function LoginPage() {
     setIsLoggingIn(true);
 
     try {
-      // 1. Fetch user record from Supabase app_users table
-      const { data: user, error } = await supabase
+      const { data: user } = await supabase
         .from('app_users')
         .select('*')
         .eq('username', inputUser)
@@ -37,7 +36,6 @@ export default function LoginPage() {
 
       let validUser = user;
 
-      // Fail-safe check for initial admin account
       if (!validUser && inputUser === 'admin' && inputPass === 'admin') {
         const salt = 'vms_salt_2026';
         const hash = await hashPasswordAsync('admin', salt);
@@ -61,7 +59,6 @@ export default function LoginPage() {
         throw new Error('Invalid username or password.');
       }
 
-      // Compute and verify password hash
       const computedHash = await hashPasswordAsync(inputPass, validUser.salt || 'vms_salt_2026');
       const isHashMatch = computedHash === validUser.password_hash;
       const isAdminDefault = inputUser === 'admin' && inputPass === 'admin';
@@ -70,7 +67,6 @@ export default function LoginPage() {
         throw new Error('Invalid username or password.');
       }
 
-      // Store Session
       const sessionData = {
         id: validUser.id,
         username: validUser.username,
@@ -79,11 +75,10 @@ export default function LoginPage() {
       };
       setStoredSession(sessionData);
 
-      // Redirect to password change if required, else to admin
       if (validUser.requires_password_change) {
         router.push('/change-password');
       } else {
-        router.push(validUser.role === 'admin' ? '/admin' : '/');
+        router.push(validUser.role === 'admin' ? '/admin' : '/kiosk');
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -126,7 +121,7 @@ export default function LoginPage() {
                 type="text"
                 required
                 autoFocus
-                placeholder="Enter username (default: admin)"
+                placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
@@ -143,7 +138,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 required
-                placeholder="Enter password (default: admin)"
+                placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
@@ -165,10 +160,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        <div className="mt-8 pt-4 border-t border-slate-800 text-center text-xs text-slate-400">
-          Default Admin Password: <code className="text-brand-gold bg-slate-950 px-1.5 py-0.5 rounded">admin</code> (Requires password update on first login)
-        </div>
       </div>
     </div>
   );

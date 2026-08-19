@@ -15,7 +15,6 @@ export default function HomePage() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
-    // If already logged in, redirect to Kiosk immediately
     const session = getStoredSession();
     if (session) {
       router.push('/kiosk');
@@ -39,7 +38,6 @@ export default function HomePage() {
     setIsLoggingIn(true);
 
     try {
-      // 1. Fetch user record from Supabase app_users table
       const { data: user } = await supabase
         .from('app_users')
         .select('*')
@@ -48,7 +46,6 @@ export default function HomePage() {
 
       let validUser = user;
 
-      // Fail-safe initialization check for default admin account
       if (!validUser && inputUser === 'admin' && inputPass === 'admin') {
         const salt = 'vms_salt_2026';
         const hash = await hashPasswordAsync('admin', salt);
@@ -72,7 +69,6 @@ export default function HomePage() {
         throw new Error('Invalid username or password.');
       }
 
-      // Compute and verify password hash
       const computedHash = await hashPasswordAsync(inputPass, validUser.salt || 'vms_salt_2026');
       const isHashMatch = computedHash === validUser.password_hash;
       const isAdminDefault = inputUser === 'admin' && inputPass === 'admin';
@@ -81,7 +77,6 @@ export default function HomePage() {
         throw new Error('Invalid username or password.');
       }
 
-      // Store Session
       const sessionData = {
         id: validUser.id,
         username: validUser.username,
@@ -90,7 +85,6 @@ export default function HomePage() {
       };
       setStoredSession(sessionData);
 
-      // Redirect
       if (validUser.requires_password_change) {
         router.push('/change-password');
       } else {
@@ -145,7 +139,7 @@ export default function HomePage() {
                 type="text"
                 required
                 autoFocus
-                placeholder="Enter username (default: admin)"
+                placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
@@ -162,7 +156,7 @@ export default function HomePage() {
               <input
                 type="password"
                 required
-                placeholder="Enter password (default: admin)"
+                placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
@@ -184,10 +178,6 @@ export default function HomePage() {
             )}
           </button>
         </form>
-
-        <div className="mt-8 pt-4 border-t border-slate-800 text-center text-xs text-slate-400">
-          Default Admin Account: <code className="text-brand-gold bg-slate-950 px-1.5 py-0.5 rounded">admin</code> / <code className="text-brand-gold bg-slate-950 px-1.5 py-0.5 rounded">admin</code>
-        </div>
       </div>
     </div>
   );
