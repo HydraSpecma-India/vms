@@ -1,11 +1,25 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { UserCheck, Users, FileText, UserCog, Shield } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { UserCheck, Users, FileText, UserCog, Shield, LogIn, LogOut, KeyRound } from 'lucide-react';
+import { getStoredSession, setStoredSession, UserSession } from '@/lib/auth';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [session, setSession] = useState<UserSession | null>(null);
+
+  useEffect(() => {
+    setSession(getStoredSession());
+  }, [pathname]);
+
+  const handleLogout = () => {
+    setStoredSession(null);
+    setSession(null);
+    router.push('/');
+  };
 
   const navItems = [
     { label: 'Check-In Kiosk', href: '/', icon: UserCheck },
@@ -14,21 +28,31 @@ export default function Navbar() {
     { label: 'Employee Directory', href: '/employees', icon: UserCog },
   ];
 
+  if (session && session.role === 'admin') {
+    navItems.push({ label: 'Admin Management', href: '/admin', icon: Shield });
+  }
+
   return (
-    <header className="bg-slate-900 text-white shadow-md no-print">
+    <header className="bg-brand-navy border-b border-slate-800 text-white shadow-xl no-print">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-3">
-            <div className="bg-blue-600 p-2 rounded-lg text-white">
+          {/* Logo & Corporate Title */}
+          <Link href="/" className="flex items-center space-x-3 group">
+            <div className="bg-brand-gold p-2 rounded-xl text-slate-900 shadow-md group-hover:scale-105 transition transform">
               <Shield className="w-6 h-6" />
             </div>
             <div>
-              <span className="font-bold text-lg tracking-tight block">Visitor Management System</span>
-              <span className="text-xs text-slate-400 block">HydraSpecma • Vercel & Supabase Edition</span>
+              <span className="font-extrabold text-lg tracking-tight block text-white group-hover:text-brand-gold transition">
+                HydraSpecma
+              </span>
+              <span className="text-[10px] font-semibold text-brand-gold uppercase tracking-widest block">
+                Visitor Management System
+              </span>
             </div>
-          </div>
+          </Link>
 
-          <nav className="flex space-x-1 sm:space-x-2">
+          {/* Navigation Links */}
+          <nav className="hidden md:flex space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -36,18 +60,44 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow'
+                      ? 'bg-brand-gold text-slate-950 shadow-md'
                       : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="hidden md:inline">{item.label}</span>
+                  <span>{item.label}</span>
                 </Link>
               );
             })}
           </nav>
+
+          {/* Auth State & Logout / Login */}
+          <div className="flex items-center space-x-3">
+            {session ? (
+              <div className="flex items-center space-x-3 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                <div className="text-right">
+                  <span className="font-bold block text-slate-100">{session.username}</span>
+                  <span className="text-[10px] text-brand-gold font-bold uppercase block">{session.role}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-1.5 bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white rounded-lg transition"
+                  title="Log Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex items-center px-3.5 py-2 bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl hover:bg-brand-gold hover:text-slate-900 transition shadow"
+              >
+                <LogIn className="w-4 h-4 mr-1.5 text-brand-gold" /> Admin Login
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </header>
