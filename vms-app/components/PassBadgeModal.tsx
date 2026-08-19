@@ -1,43 +1,46 @@
 'use client';
 
 import React from 'react';
-import { Printer, X, ShieldCheck } from 'lucide-react';
+import { Printer, Check, X, ShieldCheck } from 'lucide-react';
 
-interface Visitor {
-  pass_id: string;
-  full_name: string;
-  mobile: string;
-  company?: string;
-  purpose?: string;
-  who_to_meet?: string;
-  host_department?: string;
-  host_title?: string;
-  number_of_visitors?: number;
-  check_in_time: string;
-  photo_url?: string;
-}
-
-interface PassBadgeModalProps {
-  visitor: Visitor;
+interface VisitorPassProps {
+  visitor: {
+    pass_id: string;
+    full_name: string;
+    mobile: string;
+    company?: string;
+    purpose?: string;
+    who_to_meet?: string;
+    host_department?: string;
+    host_title?: string;
+    number_of_visitors?: number;
+    check_in_time?: string;
+    photo_url?: string;
+  };
   onClose: () => void;
 }
 
-export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps) {
-  const checkInDate = new Date(visitor.check_in_time);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const day = String(checkInDate.getDate()).padStart(2, '0');
-  const monthStr = months[checkInDate.getMonth()];
-  const year = checkInDate.getFullYear();
-  let hours = checkInDate.getHours();
-  const minutes = String(checkInDate.getMinutes()).padStart(2, '0');
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours ? hours : 12;
-  const formattedHours = String(hours).padStart(2, '0');
-
-  const formattedDateTime = `${day}-${monthStr}-${year} ${formattedHours}:${minutes} ${ampm}`;
+export default function PassBadgeModal({ visitor, onClose }: VisitorPassProps) {
+  const formattedDateTime = visitor.check_in_time
+    ? new Date(visitor.check_in_time).toLocaleString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }).toUpperCase()
+    : new Date().toLocaleString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }).toUpperCase();
 
   const handlePrint = () => {
+    // Create an isolated hidden iframe specifically for 80mm thermal receipt printing
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -48,17 +51,14 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
     document.body.appendChild(iframe);
 
     const iframeDoc = iframe.contentWindow?.document;
-    if (!iframeDoc) {
-      window.print();
-      return;
-    }
+    if (!iframeDoc) return;
 
     const photoHtml = visitor.photo_url
-      ? `<img src="${visitor.photo_url}" alt="${visitor.full_name}" style="width: 112px; height: 112px; object-fit: cover; border: 1px solid #000000;" />`
-      : `<div style="width: 112px; height: 112px; border: 1px solid #000000; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;">[ NO PHOTO ]</div>`;
+      ? `<img src="${visitor.photo_url}" style="width: 110px; height: 110px; object-fit: cover; border: 1px solid #000000; display: block; margin: 0 auto;" />`
+      : `<div style="width: 110px; height: 110px; border: 1px solid #000000; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; margin: 0 auto;">[ NO PHOTO ]</div>`;
 
     const deptHtml = visitor.host_department
-      ? `<div style="font-weight: 600; font-size: 10px; color: #1e293b; margin-top: 2px;">${visitor.host_department}</div>`
+      ? `<div style="font-size: 10px; font-weight: 600; margin-top: 2px; color: #1e293b; line-height: 1.2;">${visitor.host_department}</div>`
       : '';
 
     iframeDoc.open();
@@ -72,8 +72,7 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
               size: 80mm auto;
               margin: 0mm;
             }
-            html, body {
-              width: 80mm !important;
+            body {
               margin: 0 !important;
               padding: 0 !important;
               background-color: #ffffff !important;
@@ -100,10 +99,6 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
             .text-left { text-align: left; }
             .text-right { text-align: right; }
             .w-full { width: 100%; }
-            .flex { display: flex; }
-            .justify-between { justify-content: space-between; }
-            .justify-center { justify-content: flex-end; }
-            .flex-1 { flex: 1 1 0%; }
             
             .border-box-solid { border: 1.5px solid #000000; }
             .border-solid-line { border-bottom: 1.5px solid #000000; }
@@ -115,40 +110,11 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
             .font-semibold { font-weight: 600; }
             .font-extrabold { font-weight: 800; }
             .uppercase { text-transform: uppercase; }
-            
-            .my-1 { margin-top: 4px; margin-bottom: 4px; }
-            .my-1.5 { margin-top: 6px; margin-bottom: 6px; }
-            .my-2 { margin-top: 8px; margin-bottom: 8px; }
-            .mt-0.5 { margin-top: 2px; }
-            .mt-1 { margin-top: 4px; }
-            .mt-6 { margin-top: 24px; }
-            .mb-1 { margin-bottom: 4px; }
-            .mb-2 { margin-bottom: 8px; }
-            
-            .py-0.5 { padding-top: 2px; padding-bottom: 2px; }
-            .py-1 { padding-top: 4px; padding-bottom: 4px; }
-            .px-1 { padding-left: 4px; padding-right: 4px; }
-            .p-1.5 { padding: 6px; }
-            .p-2 { padding: 8px; }
-            
-            .text-xs { font-size: 11px; }
-            .text-sm { font-size: 13px; }
-            .text-base { font-size: 15px; }
-            .text-\\[10px\\] { font-size: 10px; }
-            .text-\\[9px\\] { font-size: 9px; }
-            .text-\\[8px\\] { font-size: 8px; }
-            
-            .leading-tight { line-height: 1.2; }
-            .leading-snug { line-height: 1.3; }
-            .leading-none { line-height: 1; }
-            
-            .mx-auto { margin-left: auto; margin-right: auto; }
-            .break-words { overflow-wrap: break-word; }
           </style>
         </head>
         <body>
           <div class="badge-container">
-            <div className="text-center w-full">
+            <div style="text-align: center; width: 100%;">
               <h2 style="font-size: 15px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; margin: 0; line-height: 1.2;">
                 VISITOR PASS
               </h2>
@@ -158,34 +124,37 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
               <div style="border-bottom: 1.5px solid #000000; width: 100%; margin: 6px 0;"></div>
             </div>
 
+            <!-- Pass ID Box -->
             <div style="width: 100%; border: 1.5px solid #000000; text-align: center; padding: 4px; margin: 4px 0;">
               <span style="font-family: monospace; font-weight: 900; font-size: 13px; letter-spacing: 1px;">
                 ${visitor.pass_id}
               </span>
             </div>
 
-            <div style="margin: 8px 0; display: flex; justify-content: center;">
+            <!-- Photo -->
+            <div style="margin: 8px 0; width: 100%; text-align: center;">
               ${photoHtml}
             </div>
 
+            <!-- Info Rows with explicit display: flex and justify-content: space-between -->
             <div style="width: 100%; font-size: 11px; line-height: 1.3; margin: 6px 0;">
-              <div style="display: flex; justify-content: space-between; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
                 <span style="font-weight: 800; text-transform: uppercase;">NAME</span>
                 <span style="font-weight: 700; text-align: right; word-break: break-word; padding-left: 8px;">${visitor.full_name}</span>
               </div>
-              <div style="display: flex; justify-between; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
                 <span style="font-weight: 800; text-transform: uppercase;">COMPANY</span>
                 <span style="font-weight: 500; text-align: right; word-break: break-word; padding-left: 8px;">${visitor.company || '-'}</span>
               </div>
-              <div style="display: flex; justify-content: space-between; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
                 <span style="font-weight: 800; text-transform: uppercase;">MOBILE</span>
                 <span style="font-weight: 500; text-align: right; padding-left: 8px;">${visitor.mobile}</span>
               </div>
-              <div style="display: flex; justify-content: space-between; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
                 <span style="font-weight: 800; text-transform: uppercase;">PURPOSE</span>
                 <span style="font-weight: 500; text-align: right; padding-left: 8px;">${visitor.purpose || 'General'}</span>
               </div>
-              <div style="display: flex; justify-content: space-between; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dotted #a1a1aa; padding: 4px 0;">
                 <span style="font-weight: 800; text-transform: uppercase;">VISITORS</span>
                 <span style="font-weight: 500; text-align: right; padding-left: 8px;">${visitor.number_of_visitors || 1}</span>
               </div>
@@ -227,7 +196,9 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
     setTimeout(() => {
       iframe.contentWindow?.print();
       setTimeout(() => {
-        document.body.removeChild(iframe);
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
       }, 1000);
     }, 250);
   };
@@ -338,32 +309,32 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
             {/* Host Signature Line */}
             <div className="w-full text-center mt-6 mb-2">
               <div className="border-b-2 border-black w-3/4 mx-auto mb-1"></div>
-              <span className="text-[9px] font-extrabold text-black tracking-wider uppercase">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-black">
                 HOST SIGNATURE
               </span>
             </div>
 
-            {/* Security Notice Footer */}
-            <div className="w-full text-center mt-2 pt-2 border-dotted-line text-[8px] text-slate-700 leading-tight">
-              <p>This pass must be worn visibly at all times.</p>
-              <p className="mt-0.5">Please return pass at security gate upon departure.</p>
+            {/* Bottom Security Footer Notice */}
+            <div className="w-full text-center mt-2 pt-2 border-t border-dotted border-slate-400 text-[8px] text-slate-800 leading-tight">
+              <p className="margin-0">This pass must be worn visibly at all times.</p>
+              <p className="margin-0">Please return pass at security gate upon departure.</p>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="bg-slate-950 border-t border-slate-800 px-6 py-4 flex space-x-3 no-print">
-          <button
-            onClick={handlePrint}
-            className="flex-1 inline-flex items-center justify-center px-5 py-3 bg-brand-gold text-slate-950 font-black text-sm rounded-xl hover:bg-amber-400 shadow-xl transition"
-          >
-            <Printer className="w-4 h-4 mr-2" /> Print 80mm Badge
-          </button>
+        {/* Modal Action Buttons */}
+        <div className="bg-slate-950 px-6 py-4 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 border-t border-slate-800 no-print">
           <button
             onClick={onClose}
-            className="px-4 py-3 bg-slate-800 text-slate-300 font-bold text-sm rounded-xl hover:bg-slate-700 transition"
+            className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl transition flex items-center justify-center"
           >
-            Close
+            <X className="w-4 h-4 mr-1.5" /> Close
+          </button>
+          <button
+            onClick={handlePrint}
+            className="w-full sm:w-auto px-5 py-2.5 bg-brand-gold hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl transition shadow-lg flex items-center justify-center"
+          >
+            <Printer className="w-4 h-4 mr-2" /> Print 80mm Pass Badge
           </button>
         </div>
       </div>
