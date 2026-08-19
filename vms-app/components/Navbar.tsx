@@ -21,15 +21,13 @@ export default function Navbar() {
     router.push('/');
   };
 
-  // Default nav items for public view (hides Employee Directory by default)
-  const navItems = [
-    { label: 'Check-In Kiosk', href: '/', icon: UserCheck },
-    { label: 'Active Visitors', href: '/active', icon: Users },
-    { label: 'History & Reports', href: '/reports', icon: FileText },
-  ];
+  // Build nav items dynamically based on auth session
+  const navItems = [];
 
-  // Show Employee Directory and Admin links when logged in
   if (session) {
+    navItems.push({ label: 'Visitor Kiosk', href: '/kiosk', icon: UserCheck });
+    navItems.push({ label: 'Active Visitors', href: '/active', icon: Users });
+    navItems.push({ label: 'History & Reports', href: '/reports', icon: FileText });
     navItems.push({ label: 'Employee Directory', href: '/employees', icon: UserCog });
     if (session.role === 'admin') {
       navItems.push({ label: 'Admin Management', href: '/admin', icon: Shield });
@@ -40,8 +38,8 @@ export default function Navbar() {
     <header className="bg-slate-900 border-b border-slate-800 text-white shadow-xl no-print w-full">
       <div className="w-full px-4 sm:px-6 lg:px-10">
         <div className="flex items-center justify-between h-16">
-          {/* Logo & Title */}
-          <Link href="/" className="flex items-center space-x-3 group">
+          {/* Logo & Corporate Title */}
+          <Link href={session ? '/kiosk' : '/'} className="flex items-center space-x-3 group">
             <div className="bg-brand-gold p-2 rounded-xl text-slate-950 shadow-md group-hover:scale-105 transition transform">
               <Shield className="w-6 h-6" />
             </div>
@@ -55,7 +53,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Nav Links */}
+          {/* Navigation Links */}
           <nav className="hidden md:flex space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -77,7 +75,7 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Auth Button */}
+          {/* Auth State & Logout / Login */}
           <div className="flex items-center space-x-3">
             {session ? (
               <div className="flex items-center space-x-3 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
@@ -95,10 +93,10 @@ export default function Navbar() {
               </div>
             ) : (
               <Link
-                href="/login"
+                href="/"
                 className="inline-flex items-center px-4 py-2 bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl hover:bg-brand-gold hover:text-slate-950 transition shadow"
               >
-                <LogIn className="w-4 h-4 mr-1.5 text-brand-gold" /> Admin Login
+                <LogIn className="w-4 h-4 mr-1.5 text-brand-gold" /> System Login
               </Link>
             )}
           </div>

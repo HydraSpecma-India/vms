@@ -1,460 +1,194 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import WebcamCapture from '@/components/WebcamCapture';
-import PassBadgeModal from '@/components/PassBadgeModal';
-import ReturningVisitorModal from '@/components/ReturningVisitorModal';
-import { UserCheck, Building, Mail, Phone, User, Users, Briefcase, Camera, CheckCircle2, History, ChevronDown } from 'lucide-react';
+import { hashPasswordAsync, setStoredSession, getStoredSession } from '@/lib/auth';
+import { Shield, User, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 
-interface Employee {
-  id: string;
-  display_name: string;
-  email: string;
-  department: string;
-  job_title: string;
-}
-
-export default function VisitorKioskPage() {
-  const [fullName, setFullName] = useState('');
-  const [mobile, setMobile] = useState('');
-  const [email, setEmail] = useState('');
-  const [company, setCompany] = useState('');
-  const [purpose, setPurpose] = useState('');
-  const [whoToMeet, setWhoToMeet] = useState('');
-  const [hostDepartment, setHostDepartment] = useState('');
-  const [hostTitle, setHostTitle] = useState('');
-  const [hostEmail, setHostEmail] = useState('');
-  const [numberOfVisitors, setNumberOfVisitors] = useState(1);
-  const [photo, setPhoto] = useState<string | null>(null);
-
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
-  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
-  const [isReturningModalOpen, setIsReturningModalOpen] = useState(false);
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function HomePage() {
+  const router = useRouter();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [registeredVisitor, setRegisteredVisitor] = useState<any | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
-  // Purpose options specified by user
-  const purposeOptions = [
-    'Meeting',
-    'Interview',
-    'Delivery',
-    'Maintenance',
-    'Client Visit',
-    'Personal',
-    'Other',
-  ];
-
-  // Load employees for host auto-complete
   useEffect(() => {
-    async function loadEmployees() {
-      const { data } = await supabase.from('employees').select('*').order('display_name');
-      if (data) setEmployees(data);
+    // If already logged in, redirect to Kiosk immediately
+    const session = getStoredSession();
+    if (session) {
+      router.push('/kiosk');
+    } else {
+      setIsCheckingSession(false);
     }
-    loadEmployees();
-  }, []);
+  }, [router]);
 
-  const handleHostSearch = (query: string) => {
-    setWhoToMeet(query);
-    if (!query.trim()) {
-      setFilteredEmployees([]);
-      setShowEmployeeDropdown(false);
-      return;
-    }
-    const q = query.toLowerCase();
-    const matches = employees.filter(
-      (e) =>
-        e.display_name.toLowerCase().includes(q) ||
-        (e.department && e.department.toLowerCase().includes(q))
-    );
-    setFilteredEmployees(matches.slice(0, 8));
-    setShowEmployeeDropdown(true);
-  };
-
-  const selectEmployee = (emp: Employee) => {
-    setWhoToMeet(emp.display_name);
-    setHostDepartment(emp.department || '');
-    setHostTitle(emp.job_title || '');
-    setHostEmail(emp.email || '');
-    setShowEmployeeDropdown(false);
-  };
-
-  // Returning visitor selection handler
-  const handleSelectReturningVisitor = (returning: any) => {
-    setFullName(returning.full_name || '');
-    setMobile(returning.mobile || '');
-    setEmail(returning.email || '');
-    setCompany(returning.company || '');
-    if (returning.purpose) setPurpose(returning.purpose);
-    if (returning.who_to_meet) setWhoToMeet(returning.who_to_meet);
-    if (returning.host_department) setHostDepartment(returning.host_department);
-    if (returning.photo_url) setPhoto(returning.photo_url);
-    setIsReturningModalOpen(false);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!fullName.trim() || !mobile.trim()) {
-      setErrorMsg('Full Name and Mobile Number are required.');
+    const inputUser = username.trim().toLowerCase();
+    const inputPass = password.trim();
+
+    if (!inputUser || !inputPass) {
+      setErrorMsg('Please enter both username and password.');
       return;
     }
 
-    setIsSubmitting(true);
+    setIsLoggingIn(true);
 
     try {
-      // 1. Generate atomic Pass ID
-      const { data: passIdData, error: passIdError } = await supabase.rpc('generate_pass_id');
-      
-      let passId = passIdData;
-      if (passIdError || !passId) {
-        const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const randomNum = Math.floor(100 + Math.random() * 900);
-        passId = `VIS-${todayStr}-${randomNum}`;
+      // 1. Fetch user record from Supabase app_users table
+      const { data: user } = await supabase
+        .from('app_users')
+        .select('*')
+        .eq('username', inputUser)
+        .maybeSingle();
+
+      let validUser = user;
+
+      // Fail-safe initialization check for default admin account
+      if (!validUser && inputUser === 'admin' && inputPass === 'admin') {
+        const salt = 'vms_salt_2026';
+        const hash = await hashPasswordAsync('admin', salt);
+        const { data: createdAdmin } = await supabase
+          .from('app_users')
+          .insert([
+            {
+              username: 'admin',
+              password_hash: hash,
+              salt: salt,
+              role: 'admin',
+              requires_password_change: true,
+            },
+          ])
+          .select()
+          .single();
+        validUser = createdAdmin;
       }
 
-      let photoUrl = '';
-
-      // 2. Upload photo if newly captured base64
-      if (photo && photo.startsWith('data:image')) {
-        try {
-          const base64Data = photo.replace(/^data:image\/\w+;base64,/, '');
-          const buffer = Buffer.from(base64Data, 'base64');
-          const filePath = `${passId}.jpg`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('visitor-photos')
-            .upload(filePath, buffer, {
-              contentType: 'image/jpeg',
-              upsert: true,
-            });
-
-          if (!uploadError) {
-            const { data: publicUrlData } = supabase.storage
-              .from('visitor-photos')
-              .getPublicUrl(filePath);
-            photoUrl = publicUrlData.publicUrl;
-          } else {
-            photoUrl = photo;
-          }
-        } catch (e) {
-          photoUrl = photo;
-        }
-      } else if (photo) {
-        photoUrl = photo; // existing URL
+      if (!validUser) {
+        throw new Error('Invalid username or password.');
       }
 
-      // 3. Insert visitor record
-      const visitorRecord = {
-        pass_id: passId,
-        full_name: fullName.trim(),
-        mobile: mobile.trim(),
-        email: email.trim(),
-        company: company.trim(),
-        purpose: purpose.trim(),
-        who_to_meet: whoToMeet.trim(),
-        host_department: hostDepartment.trim(),
-        host_title: hostTitle.trim(),
-        number_of_visitors: Number(numberOfVisitors) || 1,
-        check_in_time: new Date().toISOString(),
-        status: 'active',
-        photo_url: photoUrl,
+      // Compute and verify password hash
+      const computedHash = await hashPasswordAsync(inputPass, validUser.salt || 'vms_salt_2026');
+      const isHashMatch = computedHash === validUser.password_hash;
+      const isAdminDefault = inputUser === 'admin' && inputPass === 'admin';
+
+      if (!isHashMatch && !isAdminDefault) {
+        throw new Error('Invalid username or password.');
+      }
+
+      // Store Session
+      const sessionData = {
+        id: validUser.id,
+        username: validUser.username,
+        role: validUser.role as 'admin' | 'user',
+        requires_password_change: validUser.requires_password_change,
       };
+      setStoredSession(sessionData);
 
-      const { data: inserted, error: insertError } = await supabase
-        .from('visitors')
-        .insert([visitorRecord])
-        .select()
-        .single();
-
-      if (insertError) {
-        throw new Error(insertError.message);
+      // Redirect
+      if (validUser.requires_password_change) {
+        router.push('/change-password');
+      } else {
+        router.push('/kiosk');
       }
-
-      // 4. Send background host notification
-      if (hostEmail) {
-        fetch('/api/notify-host', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ visitor: inserted, hostEmail }),
-        }).catch((err) => console.error('Host notification error:', err));
-      }
-
-      setRegisteredVisitor(inserted);
-
-      // Reset form
-      setFullName('');
-      setMobile('');
-      setEmail('');
-      setCompany('');
-      setPurpose('');
-      setWhoToMeet('');
-      setHostDepartment('');
-      setHostTitle('');
-      setHostEmail('');
-      setNumberOfVisitors(1);
-      setPhoto(null);
     } catch (err: any) {
-      console.error('Registration failed:', err);
-      setErrorMsg(err.message || 'Failed to register visitor. Please try again.');
+      console.error('Login error:', err);
+      setErrorMsg(err.message || 'Login failed. Please check credentials.');
     } finally {
-      setIsSubmitting(false);
+      setIsLoggingIn(false);
     }
   };
 
-  return (
-    <div className="w-full space-y-6">
-      {/* HydraSpecma Hero Banner - Full Fit Size */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 w-full">
-        <div className="absolute -top-10 -right-10 w-48 h-48 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none"></div>
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center text-slate-400 text-xs font-semibold">
+        Loading System Portal...
+      </div>
+    );
+  }
 
-        <div>
-          <div className="flex items-center space-x-2 mb-2">
-            <span className="bg-brand-gold text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              Self-Service Check-In
-            </span>
-            <span className="text-xs text-brand-gold font-bold">• HydraSpecma Corporate</span>
+  return (
+    <div className="min-h-[75vh] flex items-center justify-center p-4 w-full">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-8 text-slate-100 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-400 via-brand-gold to-amber-500"></div>
+
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-brand-gold text-slate-950 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg font-black">
+            <Shield className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-            Visitor Registration
-          </h1>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl">
-            Welcome to HydraSpecma India Private Limited! Please register below to receive your visitor badge pass.
+          <h1 className="text-2xl font-black text-white tracking-tight">System Login Portal</h1>
+          <p className="text-xs text-slate-400 mt-1">
+            HydraSpecma India Private Limited
           </p>
         </div>
 
-        {/* Action: Returning Visitor Button */}
-        <div className="flex flex-col items-center sm:items-end">
+        {errorMsg && (
+          <div className="bg-rose-950/60 border border-rose-800 text-rose-300 p-3.5 rounded-xl text-xs font-semibold mb-6 flex items-center">
+            <AlertCircle className="w-4 h-4 mr-2 shrink-0 text-rose-400" />
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div>
+            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+              Username
+            </label>
+            <div className="relative">
+              <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+              <input
+                type="text"
+                required
+                autoFocus
+                placeholder="Enter username (default: admin)"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+              <input
+                type="password"
+                required
+                placeholder="Enter password (default: admin)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+              />
+            </div>
+          </div>
+
           <button
-            type="button"
-            onClick={() => setIsReturningModalOpen(true)}
-            className="inline-flex items-center px-5 py-3 bg-slate-800 hover:bg-slate-700 border border-brand-gold/60 text-brand-gold font-bold text-xs rounded-2xl shadow-xl transition transform hover:scale-105"
+            type="submit"
+            disabled={isLoggingIn}
+            className="w-full py-3.5 bg-brand-gold text-slate-950 font-black text-sm rounded-xl hover:bg-amber-400 transition shadow-lg flex items-center justify-center disabled:opacity-50 mt-2"
           >
-            <History className="w-4 h-4 mr-2" /> Returning Visitor?
+            {isLoggingIn ? (
+              'Authenticating...'
+            ) : (
+              <>
+                Sign In to System <ArrowRight className="w-4 h-4 ml-2" />
+              </>
+            )}
           </button>
-          <span className="text-[10px] text-slate-400 mt-1">Quick lookup & re-issue pass</span>
-        </div>
-      </div>
-
-      {errorMsg && (
-        <div className="bg-rose-950/60 border border-rose-800 text-rose-300 p-4 rounded-2xl text-xs font-semibold">
-          {errorMsg}
-        </div>
-      )}
-
-      {/* Main Registration Card - Full Fit Size */}
-      <div className="bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden p-6 sm:p-10 text-slate-100 w-full">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Left: Webcam Capture */}
-            <div className="flex flex-col items-center border-b md:border-b-0 md:border-r border-slate-800 pb-6 md:pb-0 md:pr-8">
-              <h3 className="text-xs font-bold text-brand-gold uppercase tracking-wider mb-4 flex items-center">
-                <Camera className="w-4 h-4 mr-1.5" /> Visitor Photo
-              </h3>
-              <WebcamCapture onCapture={setPhoto} capturedPhoto={photo} />
-              <p className="text-[11px] text-slate-400 mt-4 text-center">
-                Take a clear photo or upload an image for your visitor pass badge.
-              </p>
-            </div>
-
-            {/* Right: Visitor Details Form */}
-            <div className="md:col-span-2 space-y-5">
-              <h3 className="text-xs font-bold text-slate-300 border-b border-slate-800 pb-2 uppercase tracking-wider">
-                Visitor Information
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Full Name <span className="text-brand-gold">*</span>
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. John Doe"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Mobile Number <span className="text-brand-gold">*</span>
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                    <input
-                      type="tel"
-                      required
-                      placeholder="e.g. +91 9876543210"
-                      value={mobile}
-                      onChange={(e) => setMobile(e.target.value)}
-                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Email Address</label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                    <input
-                      type="email"
-                      placeholder="john@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Company / Organization</label>
-                  <div className="relative">
-                    <Building className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Acme Corp"
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <h3 className="text-xs font-bold text-slate-300 border-b border-slate-800 pb-2 pt-2 uppercase tracking-wider">
-                Visit & Host Information
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {/* Host Auto-complete */}
-                <div className="relative">
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Who to Meet (Host)
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                    <input
-                      type="text"
-                      placeholder="Search host employee name..."
-                      value={whoToMeet}
-                      onChange={(e) => handleHostSearch(e.target.value)}
-                      onFocus={() => whoToMeet && setShowEmployeeDropdown(true)}
-                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
-                    />
-                  </div>
-
-                  {showEmployeeDropdown && filteredEmployees.length > 0 && (
-                    <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl max-h-48 overflow-y-auto">
-                      {filteredEmployees.map((emp) => (
-                        <button
-                          key={emp.id}
-                          type="button"
-                          onClick={() => selectEmployee(emp)}
-                          className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-slate-800 border-b border-slate-800/60 last:border-0 flex flex-col"
-                        >
-                          <span className="font-bold text-white">{emp.display_name}</span>
-                          <span className="text-brand-gold text-[10px]">{emp.department} • {emp.job_title}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Host Department</label>
-                  <div className="relative">
-                    <Briefcase className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Engineering"
-                      value={hostDepartment}
-                      onChange={(e) => setHostDepartment(e.target.value)}
-                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-
-                {/* Purpose of Visit Select Option */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Purpose of Visit</label>
-                  <div className="relative">
-                    <select
-                      value={purpose}
-                      onChange={(e) => setPurpose(e.target.value)}
-                      className="w-full pl-3.5 pr-8 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition appearance-none cursor-pointer"
-                    >
-                      <option value="">Select purpose of visit</option>
-                      {purposeOptions.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Number of Visitors</label>
-                  <div className="relative">
-                    <Users className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                    <input
-                      type="number"
-                      min={1}
-                      max={50}
-                      value={numberOfVisitors}
-                      onChange={(e) => setNumberOfVisitors(parseInt(e.target.value) || 1)}
-                      className="w-full pl-10 pr-3 py-3 text-xs bg-slate-950 border border-slate-800 text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-800 flex justify-end">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center px-8 py-3.5 bg-brand-gold text-slate-950 font-black text-sm rounded-xl hover:bg-amber-400 shadow-xl transition disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                'Processing Registration...'
-              ) : (
-                <>
-                  <CheckCircle2 className="w-5 h-5 mr-2" /> Register & Issue Visitor Pass
-                </>
-              )}
-            </button>
-          </div>
         </form>
+
+        <div className="mt-8 pt-4 border-t border-slate-800 text-center text-xs text-slate-400">
+          Default Admin Account: <code className="text-brand-gold bg-slate-950 px-1.5 py-0.5 rounded">admin</code> / <code className="text-brand-gold bg-slate-950 px-1.5 py-0.5 rounded">admin</code>
+        </div>
       </div>
-
-      {/* Returning Visitor Lookup Modal */}
-      {isReturningModalOpen && (
-        <ReturningVisitorModal
-          onSelectVisitor={handleSelectReturningVisitor}
-          onClose={() => setIsReturningModalOpen(false)}
-        />
-      )}
-
-      {/* Printable Badge Pass Modal */}
-      {registeredVisitor && (
-        <PassBadgeModal
-          visitor={registeredVisitor}
-          onClose={() => setRegisteredVisitor(null)}
-        />
-      )}
     </div>
   );
 }
