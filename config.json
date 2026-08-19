@@ -1,0 +1,14 @@
+{
+  "dataPath": "C:\\VisitorData",
+  "port": 3000,
+  "smtp": {
+    "host": "smtp.office365.com",
+    "port": 587,
+    "secure": false,
+    "auth": {
+      "user": "general-hsin@hydraspecma.onmicrosoft.com",
+      "pass": "Kavimani2478@"
+    }
+  },
+  "emailFrom": "Visitor Management <general-hsin@hydraspecma.onmicrosoft.com>"
+}

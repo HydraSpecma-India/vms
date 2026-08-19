@@ -1,0 +1,122 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>VMS Build & Deployment Guide</title>
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333333; margin: 40px; }
+    h1 { color: #BF441E; font-size: 24pt; border-bottom: 3px solid #FFCC00; padding-bottom: 5px; margin-bottom: 20px; }
+    h2 { color: #575757; font-size: 16pt; margin-top: 30px; border-bottom: 1px solid #E0E0E0; padding-bottom: 3px; }
+    h3 { color: #F39200; font-size: 13pt; margin-top: 20px; }
+    p, li { font-size: 11pt; }
+    code { font-family: Consolas, 'Courier New', monospace; background-color: #F4F4F4; padding: 2px 4px; border-radius: 3px; font-size: 10pt; color: #D14; }
+    pre { font-family: Consolas, 'Courier New', monospace; background-color: #F8F9FA; padding: 15px; border-left: 5px solid #FFCC00; border-top: 1px solid #E0E0E0; border-right: 1px solid #E0E0E0; border-bottom: 1px solid #E0E0E0; font-size: 9.5pt; line-height: 1.4; margin: 15px 0; }
+    .note { background-color: #FFF9E6; border-left: 5px solid #F39200; padding: 12px 15px; margin: 20px 0; border-radius: 4px; }
+    .note-title { font-weight: bold; color: #F39200; margin-bottom: 5px; }
+    .file-list { background-color: #F9F9F9; padding: 15px 25px; border-radius: 4px; border: 1px solid #E0E0E0; }
+    ul, ol { margin-bottom: 15px; }
+    li { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+    <h1>HydraSpecma India Private Limited</h1>
+    <p style="font-size: 12pt; color: #666666; font-style: italic;">Visitor Management System (VMS) - Build & Deployment Guide</p>
+
+    <div class="note">
+        <div class="note-title">ℹ️ Document Purpose</div>
+        This document provides detailed instructions on how to modify the VMS source code, recompile the main executable, and package it into a single-file installer (<code>VMS_Setup.exe</code>) for distribution.
+    </div>
+
+    <h2>1. Packaging the Installer (using build.bat)</h2>
+    <p>To bundle the application and its dependencies into a single, self-extracting executable (<code>VMS_Setup.exe</code>), you must place specific files in a single directory.</p>
+
+    <h3>Required Files Checklist</h3>
+    <div class="file-list">
+        <ul>
+            <li><strong><code>vms.exe</code></strong> — The compiled backend Node.js standalone application.</li>
+            <li><strong><code>config.json</code></strong> — The server configuration file (containing Port, SMTP, and DB paths).</li>
+            <li><strong><code>employees.csv</code></strong> — The employee staff directory template.</li>
+            <li><strong><code>userdata.csv</code></strong> — The userdata template file.</li>
+            <li><strong><code>build.bat</code></strong> — The packaging automation script (provided below).</li>
+        </ul>
+    </div>
+
+    <h3>build.bat Source Code</h3>
+    <p>Create a text file named <code>build.bat</code> in the folder and paste the following script inside:</p>
+    
+    <pre>@echo off
+echo ===================================================
+echo             HydraSpecma VMS Setup Builder          
+echo ===================================================
+echo.
+
+setlocal enabledelayedexpansion
+
+:: Check if required files are present in the current directory
+set MISSING=0
+if not exist "vms.exe" ( echo Error: vms.exe is missing in current folder! ^&amp; set MISSING=1 )
+if not exist "config.json" ( echo Error: config.json is missing in current folder! ^&amp; set MISSING=1 )
+if not exist "employees.csv" ( echo Error: employees.csv is missing in current folder! ^&amp; set MISSING=1 )
+if not exist "userdata.csv" ( echo Error: userdata.csv is missing in current folder! ^&amp; set MISSING=1 )
+
+if "!MISSING!"=="1" (
+    echo.
+    echo Please make sure all 4 files are in this folder before running.
+    echo.
+    pause
+    exit /b 1
+)
+
+echo Starting compilation and build process...
+echo Please wait...
+echo.
+
+:: Load base64 encoded payload in chunks
+set "B64_1=JGNTaGFycENvZGUgPSBAIgp1c2luZyBTeXN0ZW07CnVzaW5nIFN5c3RlbS5JTzsKdXNpbmcgU3lzdGVtLklPLkNvbXByZXNzaW9uOwp1c2luZyBTeXN0ZW0uUmVmbGVjdGlvbjsKdXNpbmcgU3lzdGVtLkRpYWdub3N0aWNzOwoKY2xhc3MgUHJvZ3JhbQp7CiAgICBzdGF0aWMgdm9pZCBNYWluKHN0cmluZ1tdIGFyZ3MpCiAgICB7CiAgICAgICAgQ29uc29sZS5UaXRsZSA9ICJIeWRyYVNwZWNtYSBJbmRpYSBQcml2YXRlIExpbWl0ZWQgLSBWTVMgSW5zdGFsbGVyIjsKICAgICAgICB0cnkKICAgICAgICB7CiAgICAgICAgICAgIHN0cmluZyBzZWxmUGF0aCA9IEFzc2VtYmx5LkdldEV4ZWN1dGluZ0Fzc2VtYmx5KCkuTG9jYXRpb247CiAgICAgICAgICAgIGJ5dGVbXSBhbGxCeXRlcyA9IEZpbGUuUmVhZEFsbEJ5dGVzKHNlbGZQYXRoKTsKICAgICAgICAgICAgCiAgICAgICAgICAgIC8vIEZpbmQgWklQIHNpZ25hdHVyZSBQS1x4MDNceDA0ICg1MCA0QiAwMyAwNCkgZnJvbSB0aGUgYmVnaW5uaW5nCiAgICAgICAgICAgIGludCB6aXBTdGFydEluZGV4ID0gLTE7CiAgICAgICAgICAgIGZvciAoaW50IGkgPSAwOyBpIDwgYWxsQnl0ZXMuTGVuZ3RoIC0gNDsgaSsrKQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBpZiAoYWxsQnl0ZXNbaV0gPT0gMHg1MCAmJiBhbGxCeXRlc1tpKzFdID09IDB4NEIgJiYgYWxsQnl0ZXNbaSsyXSA9PSAweDAzICYmIGFsbEJ5dGVzW2krM10gPT0gMHgwNCkKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICB6aXBTdGFydEluZGV4ID0gaTsKICAgICAgICAgICAgICAgICAgICBicmVhazsKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQogICAgICAgICAgICAKICAgICAgICAgICAgaWYgKHppcFN0YXJ0SW5kZXggPT0gLTEpCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgIENvbnNvbGUuRm9yZWdyb3VuZENvbG9yID0gQ29uc29sZUNvbG9yLlJlZDsKICAgICAgICAgICAgICAgIENvbnNvbGUuV3JpdGVMaW5lKCJFcnJvcjogWmlwIHBheWxvYWQgbm90IGZvdW5kIGluIHRoaXMgaW5zdGFsbGVyIGZpbGUuIik7CiAgICAgICAgICAgICAgICBDb25zb2xlLlJlc2V0Q29sb3IoKTsKICAgICAgICAgICAgICAgIENvbnNvbGUuV3JpdGVMaW5lKCJQcmVzcyBhbnkga2V5IHRvIGV4aXQuLi4iKTsKICAgICAgICAgICAgICAgIENvbnNvbGUuUmVhZEtleSgpOwogICAgICAgICAgICAgICAgcmV0dXJuOwogICAgICAgICAgICB9CiAgICAgICAgICAgIAogICAgICAgICAgICBDb25zb2xlLkZvcmVncm91bmRDb2xvciA9IENvbnNvbGVDb2xvci5ZZWxsb3c7CiAgICAgICAgICAgIENvbnNvbGUuV3JpdGVMaW5lKCI9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0iKTsKICAgICAgICAgICAgQ29uc29sZS5Xcml0ZUxpbmUoIiAgICAgICBIeWRyYVNwZWNtYSBJbmRpYSBQcml2YXRlIExpbWl0ZWQgLSBWTVMgU2V0dXAgSW5zdGFsbGVyICAgICIpOwogICAgICAgICAgICBDb25zb2xlLldyaXRlTGluZSgiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09Iik7CiAgICAgICAgICAgIENvbnNvbGUuUmVzZXRDb2xvcigpOw            Q29uc29sZS5Xcml0ZUxpbmUoKTsKICAgICAgICAgICAgc3RyaW5nIGRlZmF1bHRQYXRoID0gUGF0aC5Db21iaW5lKEFwcERvbWFpbi5DdXJyZW50RG9tYWluLkJhc2VEaXJlY3RvcnksICJIeWRyYVNwZWNtYV9WTVMiKTsKICAgICAgICAgICAgQ29uc29sZS5Xcml0ZSgiRW50ZXIgaW5zdGFsbGF0aW9uIGZvbGRlciBwYXRoIFxuKG9yIHByZXNzIEVudGVyIGZvciBkZWZhdWx0OiAiICsgZGVmYXVsdFBhdGggKyAiKTogIik7CiAgICAgICAgICAgIHN0cmluZyBpbnB1dCA9IENvbnNvbGUuUmVhZExpbmUoKTsKICAgICAgICAgICAgc3RyaW5nIHRhcmdldERpciA9IHN0cmluZy5Jc051bGxPckVtcHR5KGlucHV0KSA/IGRlZmF1bHRQYXRoIDogaW5wdXQ7CiAgICAgICAgICAgIAogICAgICAgICAgICBDb25zb2xlLldyaXRlTGluZSgiXG5FeHRyYWN0aW5nIGZpbGVzIHRvOiAiICsgdGFyZ2V0RGlyKTsKICAgICAgICAgICAgCiAgICAgICAgICAgIGlmICghRGlyZWN0b3J5LkV4aXN0cyh0YXJnZXREaXIpKQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBEaXJlY3RvcnkuQ3JlYXRlRGlyZWN0b3J5KHRhcmdldERpcik7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgCiAgICAgICAgICAgIC8vIFdyaXRlIFpJUCBwYXlsb2FkIHRvIHRlbXAgZmlsZQogICAgICAgICAgICBzdHJpbmcgdGVtcFppcCA9IFBhdGguQ29tYmluZShQYXRoLkdldFRlbXBQYXRoKCksICJWTVNfRGVwbG95YWJsZV9UZW1wLnppcCIpOwogICAgICAgICAgICB1c2luZyAoRmlsZVN0cmVhbSBmcyA9IG5ldyBGaWxlU3RyZWFtKHRlbXBaaXAsIEZpbGVNb2RlLkNyZWF0ZSwgRmlsZUFjY2Vzcy5Xcml0ZSkpCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgIGZzLldyaXRlKGFsbEJ5dGVzLCB6aXBTdGFydEluZGV4LCBhbGxCeXRlcy5MZW5ndGggLSB6aXBTdGFydEluZGV4KTsKICAgICAgICAgICAgfQogICAgICAgICAgICAKICAgICAgICAgICAgLy8gRXh0cmFjdCBaSVAKICAgICAgICAgICAgdHJ5CiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgIFppcEZpbGUuRXh0cmFjdFRvRGlyZWN0b3J5KHRlbXBaaXAsIHRhcmdldERpcik7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgY2F0Y2ggKEV4Y2VwdGlvbiBleCkKICAgICAgICAgICAgewogICAgICAgICAgICAgICAgQ29uc29sZS5Xcml0ZUxpbmUoIldhcm5pbmcgZHVyaW5nIHN0YW5kYXJkIGV4dHJhY3Rpb246ICIgKyBleC5NZXNzYWdlKTsKICAgICAgICAgICAgICAgIENvbnNvbGUuV3JpdGVMaW5lKCJBdHRlbXB0aW5nIG1hbnVhbCBleHRyYWN0aW9uIHRvIG92ZXJ3cml0ZSBleGlzdGluZyBmaWxlcy4uLiIpOwogICAgICAgICAgICAgICAgdXNpbmcgKFppcEFyY2hpdmUgYXJjaGl2ZSA9IFppcEZpbGUuT3BlblJlYWQodGVtcFppcCkpCiAgICAgICAgICAgICAgICB7CiAgICAgICAgICAgICAgICAgICAgZm9yZWFjaCAoWmlwQXJjaGl2ZUVudHJ5IGVudHJ5IGluIGFyY2hpdmUuRW50cmllcykKICAgICAgICAgICAgICAgICAgICB7CiAgICAgICAgICAgICAgICAgICAgICAgIHN0cmluZyBkZXN0aW5hdGlvblBhdGggPSBQYXRoLkNvbWJpbmUodGFyZ2V0RGlyLCBlbnRyeS5GdWxsTmFtZSk7CiAgICAgICAgICAgICAgICAgICAgICAgIHN0cmluZyBkaXIgPSBQYXRoLkdldERpcmVjdG9yeU5hbWUoZGVzdGluYXRpb25QYXRoKTsKICAgICAgICAgICAgICAgICAgICAgICAgaWYgKCFzdHJpbmcuSXNOdWxsT3JFbXB0eShkaXIpICYmICFEaXJlY3RvcnkuRXhpc3RzKGRpcikpCiAgICAgICAgICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgIERpcmVjdG9yeS5DcmVhdGVEaXJlY3RvcnkoZGlyKTsKICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICBpZiAoIXN0cmluZy5Jc051bGxPckVtcHR5KGVudHJ5Lk5hbWUpKQogICAgICAgICAgICAgICAgICAgICAgICB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICBlbnRyeS5FeHRyYWN0VG9GaWxlKGRlc3RpbmF0aW9uUGF0aCwgdHJ1ZSk7CiAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICAgICAgCiAgICAgICAgICAgIEZpbGUuRGVsZXRlKHRlbXBaaXApOwogICAgICAgICAgICAKICAgICAgICAgICAgQ29uc29sZS5Gb3JlZ3JvdW5kQ29sb3IgPSBDb25zb2xlQ29sb3IuR3JlZW47CiAgICAgICAgICAgIENvbnNvbGUuV3JpdGVMaW5lKCJFeHRyYWN0aW9uIGNvbXBsZXRlISIpOwogICAgICAgICAgICBDb25zb2xlLlJlc2V0Q29sb3IoKTsKCiAgICAgICAgICAgIC8vIENyZWF0ZSBWaXNpdG9yRGF0YSBkaXJlY3RvcnkgYW5kIGNvcHkgQ1NWIGZpbGVzCiAgICAgICAgICAgIHRyeQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBzdHJpbmcgdmlzaXRvckRhdGFEaXIgPSBAIkM6XFZpc2l0b3JEYXRhIjsKICAgICAgICAgICAgICAgIENvbnNvbGUuV3JpdGVMaW5lKCJcbkNyZWF0aW5nIGRpcmVjdG9yeSBmb3IgdmlzaXRvciBkYXRhOiAiICsgdmlzaXRvckRhdGFEaXIpOwogICAgICAgICAgICAgICAgaWYgKCFEaXJlY3RvcnkuRXhpc3RzKHZpc2l0b3JEYXRhRGlyKSkKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICBEaXJlY3RvcnkuQ3JlYXRlRGlyZWN0b3J5KHZpc2l0b3JEYXRhRGlyKTsKICAgICAgICAgICAgICAgIH0KCiAgICAgICAgICAgICAgICAvLyBDb3B5IGVtcGxveWVlcy5jc3YKICAgICAgICAgICAgICAgIHN0cmluZyBzcmNFbXBsb3llZXMgPSBQYXRoLkNvbWJpbmUodGFyZ2V0RGlyLCAiZW1wbG95ZWVzLmNzdiIpOwogICAgICAgICAgICAgICAgc3RyaW5nIGRlc3RFbXBsb3llZXMgPSBQYXRoLkNvbWJpbmUodmlzaXRvckRhdGFEaXIsICJlbXBsb3llZXMuY3N2Iik7CiAgICAgICAgICAgICAgICBpZiAoRmlsZS5FeGlzdHMoc3JjRW1wbG95ZWVzKSkKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICBDb25zb2xlLldyaXRlTGluZSgiQ29weWluZyBlbXBsb3llZXMuY3N2IHRvICIgKyBkZXN0RW1wbG95ZWVzKTsKICAgICAgICAgICAgICAgICAgICBGaWxlLkNvcHkoc3JjRW1wbG95ZWVzLCBkZXN0RW1wbG95ZWVzLCB0cnVlKTsKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIGVsc2UKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICBDb25zb2xlLkZvcmVncm91bmRDb2xvciA9IENvbnNvbGVDb2xvci5SZWQ7CiAgICAgICAgICAgICAgICAgICAgQ29uc29sZS5Xcml0ZUxpbmUoIldhcm5pbmc6IGVtcGxveWVlcy5jc3YgdGVtcGxhdGUgbm90IGZvdW5kIGluIGV4dHJhY3RlZCBmaWxlcy4iKTsKICAgICAgICAgICAgICAgICAgICBDb25zb2xlLlJlc2V0Q29sb3IoKTsKICAgICAgICAgICAgICAgIH0KCiAgICAgICAgICAgICAgICAvLyBDb3B5IHVzZXJkYXRhLmNzdgogICAgICAgICAgICAgICAgc3RyaW5nIHNyY1VzZXJkYXRhID0gUGF0aC5Db21iaW5lKHRhcmdldERpciwgInVzZXJkYXRhLmNzdiIpOwogICAgICAgICAgICAgICAgc3RyaW5nIGRlc3RVc2VyZGF0YSA9IFBhdGguQ29tYmluZSh2aXNpdG9yRGF0YURpciwgInVzZXJkYXRhLmNzdiIpOwogICAgICAgICAgICAgICAgaWYgKEZpbGUuRXhpc3RzKHNyY1VzZXJkYXRhKSkKICAgICAgICAgICAgICAgIHsKICAgICAgICAgICAgICAgICAgICBDb25zb2xlLldyaXRlTGluZSgiQ29weWluZyB1c2VyZGF0YS5jc3YgdG8gIiArIGRlc3RVc2VyZGF0YSk7CiAgICAgICAgICAgICAgICAgICAgRmlsZS5Db3B5KHNyY1VzZXJkYXRhLCBkZXN0VXNlcmRhdGEsIHRydWUpOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgZWxzZQogICAgICAgICAgICAgICAgewogICAgICAgICAgICAg"
+set "B64_2=ICAgICAgIENvbnNvbGUuRm9yZWdyb3VuZENvbG9yID0gQ29uc29sZUNvbG9yLlJlZDsKICAgICAgICAgICAgICAgICAgICBDb25zb2xlLldyaXRlTGluZSgiV2FybmluZzogdXNlcmRhdGEuY3N2IHRlbXBsYXRlIG5vdCBmb3VuZCBpbiBleHRyYWN0ZWQgZmlsZXMuIik7CiAgICAgICAgICAgICAgICAgICAgQ29uc29sZS5SZXNldENvbG9yKCk7CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICAgICAgY2F0Y2ggKEV4Y2VwdGlvbiBleCkKICAgICAgICAgICAgewogICAgICAgICAgICAgICAgQ29uc29sZS5Gb3JlZ3JvdW5kQ29sb3IgPSBDb25zb2xlQ29sb3IuUmVkOwogICAgICAgICAgICAgICAgQ29uc29sZS5Xcml0ZUxpbmUoIkVycm9yIGNyZWF0aW5nIGZvbGRlciBvciBjb3B5aW5nIENTViBmaWxlczogIiArIGV4Lk1lc3NhZ2UpOwogICAgICAgICAgICAgICAgQ29uc29sZS5SZXNldENvbG9yKCk7CiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIENvbnNvbGUuV3JpdGVMaW5lKCk7CiAgICAgICAgICAgIENvbnNvbGUuV3JpdGUoIldvdWxkIHlvdSBsaWtlIHRvIHN0YXJ0IHRoZSBWTVMgc2VydmVyIG5vdz8gKFkvTik6ICIpOwogICAgICAgICAgICBzdHJpbmcgbGF1bmNoSW5wdXQgPSBDb25zb2xlLlJlYWRMaW5lKCk7CiAgICAgICAgICAgIGlmIChsYXVuY2hJbnB1dCAhPSBudWxsICYmIGxhdW5jaElucHV0LlRyaW0oKS5Ub1VwcGVyKCkgPT0gIlkiKQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICBzdHJpbmcgdm1zRXhlUGF0aCA9IFBhdGguQ29tYmluZSh0YXJnZXREaXIsICJ2bXMuZXhlIik7CiAgICAgICAgICAgICAgICBpZiAoRmlsZS5FeGlzdHModm1zRXhlUGF0aCkpCiAgICAgICAgICAgICAgICB7CiAgICAgICAgICAgICAgICAgICAgQ29uc29sZS5Xcml0ZUxpbmUoIkxhdW5jaGluZyBWTVMgc2VydmVyLi4uIik7CiAgICAgICAgICAgICAgICAgICAgUHJvY2Vzc1N0YXJ0SW5mbyBwc2kgPSBuZXcgUHJvY2Vzc1N0YXJ0SW5mbygpOwogICAgICAgICAgICAgICAgICAgIHBzaS5GaWxlTmFtZSA9IHZtc0V4ZVBhdGg7CiAgICAgICAgICAgICAgICAgICAgcHNpLldvcmtpbmdEaXJlY3RvcnkgPSB0YXJnZXREaXI7CiAgICAgICAgICAgICAgICAgICAgUHJvY2Vzcy5TdGFydChwc2kpOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgZWxzZQogICAgICAgICAgICAgICAgewogICAgICAgICAgICAgICAgICAgIENvbnNvbGUuRm9yZWdyb3VuZENvbG9yID0gQ29uc29sZUNvbG9yLlJlZDsKICAgICAgICAgICAgICAgICAgICBDb25zb2xlLldyaXRlTGluZSgiRXJyb3I6IHZtcy5leGUgbm90IGZvdW5kIGluIGV4dHJhY3Rpb24gZGlyZWN0b3J5LiIpOwogICAgICAgICAgICAgICAgICAgIGNvbnNvbGUuUmVzZXRDb2xvcigpOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgICAgIGNhdGNoIChFeGNlcHRpb24gZXgpCiAgICAgICAgewogICAgICAgICAgICBDb25zb2xlLkZvcmVncm91bmRDb2xvciA9IENvbnNvbGVDb2xvci5SZWQ7CiAgICAgICAgICAgIENvbnNvbGUuV3JpdGVMaW5lKCJBbiBlcnJvciBvY2N1cnJlZCBkdXJpbmcgaW5zdGFsbGF0aW9uOiAiICsgZXguTWVzc2FnZSk7CiAgICAgICAgICAgIENvbnNvbGUuUmVzZXRDb2xvcigpOwogICAgICAgIH0KICAgICAgICAKICAgICAgICBDb25zb2xlLldyaXRlTGluZSgiXG5TZXR1cCBmaW5pc2hlZC4gUHJlc3MgYW55IGtleSB0byBleGl0Li4uIik7CiAgICAgICAgQ29uc29sZS5SZWFkS2V5KCk7CiAgICB9Cn0KIkAKCldyaXRlLUhvc3QgIj09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIgLUZvcmVncm91bmRDb2xvciBZZWxsb3cKV3JpdGUtSG9zdCAiICAgICAgICAgSHlkcmFTcGVjbWEgVk1TIFNldHVwIEJ1aWxkZXIgICAgICAgICAgICAgIiAtRm9yZWdyb3VuZENvbG9yIFllbGxvdwpXcml0ZS1Ib3N0ICI9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0iIC1Gb3JlZ3JvdW5kQ29sb3IgWWVsbG93CldyaXRlLUhvc3QgIiIKCiMgVmVyaWZ5IHJlcXVpcmVkIGZpbGVzIGluIGN1cnJlbnQgZm9sZGVyCiRyZXF1aXJlZEZpbGVzID0gQCgidm1zLmV4ZSIsICJjb25maWcuanNvbiIsICJlbXBsb3llZXMuY3N2IiwgInVzZXJkYXRhLmNzdiIpCiRtaXNzaW5nID0gJGZhbHNlCmZvcmVhY2ggKCRmaWxlIGluICRyZXF1aXJlZEZpbGVzKSB7CiAgICBpZiAoLW5vdCAoVGVzdC1QYXRoICRmaWxlKSkgewogICAgICAgIFdyaXRlLUhvc3QgIkVycm9yOiBNaXNzaW5nIHJlcXVpcmVkIGZpbGUgJyRmaWxlJyBpbiB0aGUgY3VycmVudCBkaXJlY3RvcnkuIiAtRm9yZWdyb3VuZENvbG9yIFJlZAogICAgICAgICRtaXNzaW5nID0gJHRydWUKICAgIH0KfQoKaWYgKCRtaXNzaW5nKSB7CiAgICBXcml0ZS1Ib3N0ICJgblBsZWFzZSBlbnN1cmUgYWxsIDQgcmVxdWlyZWQgZmlsZXMgYXJlIGluIHRoZSBzYW1lIGZvbGRlciBhcyB0aGlzIHNjcmlwdC4iIC1Gb3JlZ3JvdW5kQ29sb3IgRGFya1llbGxvdwogICAgZXhpdAp9CgojIDEuIENyZWF0ZSB0ZW1wb3JhcnkgZGVwbG95bWVudCBmb2xkZXIKJGRlcGxveURpciA9ICJWTVNfRGVwbG95YWJsZSIKaWYgKFRlc3QtUGF0aCAkZGVwbG95RGlyKSB7CiAgICBSZW1vdmUtSXRlbSAtUGF0aCAkZGVwbG95RGlyIC1SZWN1cnNlIC1Gb3JjZSAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZQp9Ck5ldy1JdGVtIC1JdGVtVHlwZSBEaXJlY3RvcnkgLVBhdGggJGRlcGxveURpciAtRm9yY2UgfCBPdXQtTnVsbAoKIyAyLiBDb3B5IGZpbGVzIHRvIGRlcGxveW1lbnQgZm9sZGVyCkNvcHktSXRlbSAidm1zLmV4ZSIgLURlc3RpbmF0aW9uICIkZGVwbG95RGlyXHZtcy5leGUiIC1Gb3JjZQpDb3B5LUl0ZW0gImNvbmZpZy5qc29uIiAtRGVzdGluYXRpb24gIiRkZXBsb3lEaXJcY29uZmlnLmpzb24iIC1Gb3JjZQpDb3B5LUl0ZW0gImVtcGxveWVlcy5jc3YiIC1EZXN0aW5hdGlvbiAiJGRlcGxveURpclxlbXBsb3llZXMuY3N2IiAtRm9yY2UKQ29weS1JdGVtICJ1c2VyZGF0YS5jc3YiIC1EZXN0aW5hdGlvbiAiJGRlcGxveURpclx1c2VyZGF0YS5jc3YiIC1Gb3JjZQoKaWYgKFRlc3QtUGF0aCAiUkVBRE1FLnR4dCIpIHsKICAgIENvcHktSXRlbSAiUkVBRE1FLnR4dCIgLURlc3RpbmF0aW9uICIkZGVwbG95RGlyXFJFQURNRS50eHQiIC1Gb3JjZQp9IGVsc2UgewogICAgIlZpc2l0b3IgTWFuYWdlbWVudCBTeXN0ZW0gZm9yIEh5ZHJhU3BlY21hIEluZGlhIFByaXZhdGUgTGltaXRlZCIgfCBPdXQtRmlsZSAtRmlsZVBhdGggIiRkZXBsb3lEaXJcUkVBRE1FLnR4dCIgLUVuY29kaW5nIGFzY2lpCn0KCiMgMy4gQ3JlYXRlIFpJUCBhcmNoaXZlCldyaXRlLUhvc3QgIkNvbXByZXNzaW5nIGFwcGxpY2F0aW9uIGZpbGVzLi4uIiAtRm9yZWdyb3VuZENvbG9yIEN5YW4KaWYgKFRlc3QtUGF0aCAiVk1TX0RlcGxveWFibGUuemlwIikgewogICAgUmVtb3ZlLUl0ZW0gIlZNU19EZXBsb3lhYmxlLnppcCIgLUZvcmNlCn0KQ29tcHJlc3MtQXJjaGl2ZSAtUGF0aCAiJGRlcGxveURpclwqIiAtRGVzdGluYXRpb25QYXRoICJWTVNfRGVwbG95YWJsZS56aXAiIC1Gb3JjZQoKIyA0LiBXcml0ZSBDIyBpbnN0YWxsZXIgY29kZSB0byBmaWxlCldyaXRlLUhvc3QgIkdlbmVyYXRpbmcgQyMgaW5zdGFsbGVyIHNvdXJjZS4uLiIgLUZvcmVncm91bmRDb2xvciBDeWFuCltTeXN0ZW0uSU8uRmlsZV06OldyaXRlQWxsVGV4dCgiaW5zdGFsbGVyX3N0dWIuY3MiLCAkY1NoYXJwQ29kZSkKCiMgNS4gTG9jYXRlIGNvbXBpbGVyCiRjc2NQYXRoID0gIkM6XFdpbmRvd3NcTWljcm9zb2Z0Lk5FVFxGcmFtZXdvcms2NFx2NC4wLjMwMzE5XGNzYy5leGUiCmlmICgtbm90IChUZXN0LVBhdGggJGNzY1BhdGgpKSB7CiAgICBXcml0ZS1Ib3N0ICJFcnJvcjogQyMgY29tcGlsZXIgbm90IGZvdW5kIGF0ICRjc2NQYXRoIiAtRm9yZWdyb3VuZENvbG9yIFJlZAogICAgV3JpdGUtSG9zdCAiUGxlYXNlIG1ha2Ugc3VyZSAuTkVUIEZyYW1ld29yayA0LjAgb3IgaGlnaGVyIGlzIGluc3RhbGxlZC4iIC1Gb3JlZ3JvdW5kQ29sb3IgUmVkCiAgICBleGl0Cn0KCiMgNi4gQ29tcGlsZSBDIyBzdHViCldyaXRlLUhvc3QgIkNvbXBpbGluZyBpbnN0YWxsZXIgc3R1Yi4uLiIgLUZvcmVncm91bmRDb2xvciBDeWFuCmlmIChUZXN0LVBhdGggImluc3RhbGxlcl9zdHViLmV4ZSIpIHsKICAgIFJlbW92ZS1JdGVtICJpbnN0YWxsZXJfc3R1Yi5leGUiIC1Gb3JjZQp9CiYgJGNzY1BhdGggL3I6U3lzdGVtLklPLkNvbXByZXNzaW9uLkZpbGVTeXN0ZW0uZGxsIC9yOlN5c3RlbS5JTy5Db21wcmVzc2lvbi5kbGwgL291dDppbnN0YWxsZXJfc3R1Yi5leGUgaW5zdGFsbGVyX3N0dWIuY3MgfCBPdXQtTnVsbAoKaWYgKC1ub3QgKFRlc3QtUGF0aCAiaW5zdGFsbGVyX3N0dWIuZXhlIikpIHsKICAgIFdyaXRlLUhvc3QgIkNvbXBpbGF0aW9uIGZhaWxlZCEgQ2hlY2sgY29tcGlsZXIgZXJyb3JzLiIgLUZvcmVncm91bmRDb2xvciBSZWQKICAgIGV4aXQKfQoKIyA3LiBDb25jYXRlbmF0ZSBzdHViIGFuZCBaSVAgaW50byBWTVNfU2V0dXAuZXhlCldyaXRlLUhvc3QgIkFzc2VtYmxpbmcgVk1TX1NldHVwLmV4ZS4uLiIgLUZvcmVncm91bmRDb2xvciBDeWFuCiRzdHViQnl0ZXMgPSBbU3lzdGVtLklPLkZpbGVdOjpSZWFkQWxsQnl0ZXMoImluc3RhbGxlcl9zdHViLmV4ZSIpCiR6aXBCeXRlcyA9IFtTeXN0ZW0uSU8uRmlsZV06OlJlYWRBbGxCeXRlcygiVk1TX0RlcGxveWFibGUuemlwIikKJHNldHVwQnl0ZXMgPSBOZXctT2JqZWN0IEJ5dGVbXSAoJHN0dWJCeXRlcy5MZW5ndGggKyAkemlwQnl0ZXMuTGVuZ3RoKQpbU3lzdGVtLkFycmF5XTo6Q29weSgkc3R1YkJ5dGVzLCAwLCAkc2V0dXBCeXRlcywgMCwgJHN0dWJCeXRlcy5MZW5ndGgpCltTeXN0ZW0uQXJyYXldOjpDb3B5KCR6aXBCeXRlcywgMCwgJHNldHVwQnl0ZXMsICRzdHViQnl0ZXMuTGVuZ3RoLCAkemlwQnl0ZXMuTGVuZ3RoKQpbU3lzdGVtLklPLkZpbGVdOjpXcml0ZUFsbEJ5dGVzKCJWTVNfU2V0dXAuZXhlIiwgJHNldHVwQnl0ZXMpCgojIDguIENsZWFuIHVwIHRlbXAgZmlsZXMKV3JpdGUtSG9zdCAiQ2xlYW5pbmcgdXAgdGVtcG9yYXJ5IGZpbGVzLi4uIiAtRm9yZWdyb3VuZENvbG9yIEN5YW4KUmVtb3ZlLUl0ZW0gLVBhdGggJGRlcGxveURpciAtUmVjdXJzZSAtRm9yY2UgLUVycm9yQWN0aW9uIFNpbGVudGx5Q29udGludWUKUmVtb3ZlLUl0ZW0gLVBhdGggIlZNU19EZXBsb3lhYmxlLnppcCIgLUZvcmNlIC1FcnJvckFjdGlvbiBTaWxlbnRseUNvbnRpbnVlClJlbW92ZS1JdGVtIC1QYXRoICJpbnN0YWxsZXJfc3R1Yi5jcyIgLUZvcmNlIC1FcnJvckFjdGlvbiBTaWxlbnRseUNvbnRpbnVlClJlbW92ZS1JdGVtIC1QYXRoICJpbnN0YWxsZXJfc3R1Yi5leGUiIC1Gb3JjZSAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZQoKV3JpdGUtSG9zdCAiYG5TdWNjZXNzISBWTVNfU2V0dXAuZXhlIGhhcyBiZWVuIGdlbmVyYXRlZCBzdWNjZXNzZnVsbHkuIiAtRm9yZWdyb3VuZENvbG9yIEdyZWVuCg=="
+
+:: Write chunks to a temp file to avoid CMD command line length limit (8191 chars)
+echo !B64_1!> temp_payload.b64
+echo !B64_2!>> temp_payload.b64
+
+:: Decode and run using PowerShell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$encoded = Get-Content temp_payload.b64 -Raw; $encoded = $encoded -replace '\\s',''; $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($encoded)); Invoke-Expression $decoded"
+
+:: Clean up temp file
+if exist temp_payload.b64 del temp_payload.b64
+
+echo.
+echo Process complete.
+pause</pre>
+
+    <h2>2. Modifying the Main Application (vms.exe)</h2>
+    <p>Because <code>vms.exe</code> is a compiled binary containing the server-side logic and client interface, you cannot edit it directly. Instead, you modify the source files and rebuild it.</p>
+    
+    <h3>Rebuilding Steps</h3>
+    <ol>
+        <li><strong>Edit the Source Code</strong>: Open and edit the HTML/CSS/JS source files directly in your workspace (such as <code>public/index.html</code>, <code>public/css/style.css</code>, or <code>server.js</code>).</li>
+        <li><strong>Install Node.js</strong>: Download and install the current LTS version of Node.js from <a href="https://nodejs.org/" target="_blank">nodejs.org</a> on your development PC.</li>
+        <li><strong>Open Terminal</strong>: Open your Command Prompt (cmd) or PowerShell and navigate to the project root directory.</li>
+        <li><strong>Install Dependencies</strong>: Run the install command to fetch backend libraries:
+            <pre>npm install</pre>
+        </li>
+        <li><strong>Compile the Executable</strong>: Run the pack command to package your modified sources into the <code>vms.exe</code> binary:
+            <pre>npx pkg . --targets node18-win-x64 -o vms.exe</pre>
+        </li>
+        <li><strong>Update Setup Installer</strong>: Copy the new <code>vms.exe</code> to your deployment folder and run <code>build.bat</code> to compile it into the new installer package.</li>
+    </ol>
+
+    <h2>3. Troubleshooting & Safety Tips</h2>
+    
+    <h3>Fixing "Access is denied" Compile Errors</h3>
+    <p>If you get an <code>Access is denied</code> error while building the executables, it means that the previous version of the application or setup installer is still running in the background and has locked the output files (<code>vms.exe</code> or <code>VMS_Setup.exe</code>).</p>
+    <p><strong>To resolve this:</strong></p>
+    <ol>
+        <li>Open Windows <strong>Task Manager</strong>.</li>
+        <li>Locate any running processes named <code>vms.exe</code>, <code>vms</code>, <code>VMS_Setup.exe</code>, or <code>VMS_Setup</code>.</li>
+        <li>Right-click each and select <strong>End Task</strong>.</li>
+        <li>Re-run the build script.</li>
+    </ol>
+
+</body>
+</html>
