@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import PassBadgeModal from '@/components/PassBadgeModal';
-import { saveVisitorOffline, getPendingOfflineVisitors, syncOfflineQueue } from '@/lib/offlineSync';
+import { saveVisitorOffline } from '@/lib/offlineSync';
 import {
   UserCheck,
   Camera,
@@ -15,9 +15,10 @@ import {
   User,
   Phone,
   Mail,
-  HelpCircle,
   ShieldAlert,
   WifiOff,
+  History,
+  X,
 } from 'lucide-react';
 
 interface Employee {
@@ -26,6 +27,19 @@ interface Employee {
   email?: string;
   department?: string;
   job_title?: string;
+}
+
+interface VisitorRecord {
+  id: string;
+  pass_id: string;
+  full_name: string;
+  mobile: string;
+  email?: string;
+  company?: string;
+  purpose?: string;
+  who_to_meet?: string;
+  host_department?: string;
+  photo_url?: string;
 }
 
 const PURPOSES = [
@@ -53,15 +67,18 @@ export default function KioskPage() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Employees & Returning Visitor Lookup
+  // Employees & Host Dropdown
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [hostSearch, setHostSearch] = useState('');
   const [isHostDropdownOpen, setIsHostDropdownOpen] = useState(false);
   const [selectedHostObj, setSelectedHostObj] = useState<Employee | null>(null);
 
+  // Returning Visitor Selection Dropdown
   const [returningSearch, setReturningSearch] = useState('');
+  const [returningResults, setReturningResults] = useState<VisitorRecord[]>([]);
+  const [isReturningDropdownOpen, setIsReturningDropdownOpen] = useState(false);
   const [isSearchingReturning, setIsSearchingReturning] = useState(false);
-  const [returningMsg, setReturningMsg] = useState<string | null>(null);
+  const [selectedVisitorNotice, setSelectedVisitorNotice] = useState<string | null>(null);
 
   // Submit & Modal State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -122,35 +139,61 @@ export default function KioskPage() {
     setIsCameraActive(false);
   };
 
-  // Returning Visitor Auto-Fill
-  const handleSearchReturningVisitor = async () => {
-    if (!returningSearch.trim()) return;
-    setIsSearchingReturning(true);
-    setReturningMsg(null);
+  // Returning Visitor Dynamic Search & Dropdown Selection
+  const handleReturningInputChange = async (query: string) => {
+    setReturningSearch(query);
+    setSelectedVisitorNotice(null);
 
-    const q = returningSearch.trim();
-    const { data } = await supabase
-      .from('visitors')
-      .select('*')
-      .or(`mobile.eq.${q},full_name.ilike.%${q}%`)
-      .order('check_in_time', { ascending: false })
-      .limit(1);
-
-    if (data && data.length > 0) {
-      const lastVis = data[0];
-      setFullName(lastVis.full_name || '');
-      setMobile(lastVis.mobile || '');
-      setEmail(lastVis.email || '');
-      setCompany(lastVis.company || '');
-      if (lastVis.photo_url) setPhotoDataUrl(lastVis.photo_url);
-      setReturningMsg(`Found past profile for '${lastVis.full_name}'. Details auto-filled!`);
-    } else {
-      setReturningMsg('No matching returning visitor found.');
+    if (!query.trim()) {
+      setReturningResults([]);
+      setIsReturningDropdownOpen(false);
+      return;
     }
-    setIsSearchingReturning(false);
+
+    setIsSearchingReturning(true);
+    setIsReturningDropdownOpen(true);
+
+    try {
+      const q = query.trim();
+      const { data } = await supabase
+        .from('visitors')
+        .select('*')
+        .or(`mobile.ilike.%${q}%,full_name.ilike.%${q}%,company.ilike.%${q}%`)
+        .order('check_in_time', { ascending: false })
+        .limit(10);
+
+      if (data) {
+        // Filter out duplicate names/mobiles for clean selection
+        const uniqueMap = new Map();
+        data.forEach((v) => {
+          const key = v.mobile ? v.mobile : v.full_name.toLowerCase();
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, v);
+          }
+        });
+        setReturningResults(Array.from(uniqueMap.values()));
+      }
+    } catch (err) {
+      console.warn('Offline mode during returning visitor lookup');
+    } finally {
+      setIsSearchingReturning(false);
+    }
   };
 
-  // Form Submit Handler with Offline Fallback & Auto-Sync
+  const selectReturningVisitor = (vis: VisitorRecord) => {
+    setFullName(vis.full_name || '');
+    setMobile(vis.mobile || '');
+    setEmail(vis.email || '');
+    setCompany(vis.company || '');
+    if (vis.photo_url) {
+      setPhotoDataUrl(vis.photo_url);
+    }
+    setSelectedVisitorNotice(`Selected returning visitor profile for '${vis.full_name}'!`);
+    setIsReturningDropdownOpen(false);
+    setReturningSearch('');
+  };
+
+  // Form Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
@@ -196,9 +239,7 @@ export default function KioskPage() {
         photo_url: photoDataUrl,
       };
 
-      // Check if device is offline or if network request fails
       if (!navigator.onLine) {
-        // Save to IndexedDB offline queue
         await saveVisitorOffline({
           ...visitorRecord,
           hostEmail,
@@ -211,7 +252,6 @@ export default function KioskPage() {
         return;
       }
 
-      // Online Path: Upload photo and insert to Supabase
       let finalPhotoUrl = photoDataUrl;
       if (photoDataUrl.startsWith('data:image')) {
         const res = await fetch(photoDataUrl);
@@ -241,7 +281,6 @@ export default function KioskPage() {
         .single();
 
       if (error) {
-        // If Supabase insert errors out due to network issues, fallback to offline queue!
         await saveVisitorOffline({
           ...visitorRecord,
           hostEmail,
@@ -249,7 +288,6 @@ export default function KioskPage() {
         setOfflineNotice(' Saved offline! Record queued & badge generated.');
         setPassVisitorData(visitorRecord);
       } else {
-        // Trigger host notification email
         if (hostEmail) {
           fetch('/api/notify-host', {
             method: 'POST',
@@ -263,7 +301,6 @@ export default function KioskPage() {
       resetForm();
     } catch (err: any) {
       console.error('Check-in error:', err);
-      // Failover to offline queue
       const fallbackRecord = {
         pass_id: `VIS-OFFLINE-${Date.now()}`,
         full_name: fullName.trim(),
@@ -301,6 +338,7 @@ export default function KioskPage() {
     setSelectedHostObj(null);
     setNumberOfVisitors(1);
     setPhotoDataUrl(null);
+    setSelectedVisitorNotice(null);
     stopCamera();
   };
 
@@ -327,29 +365,86 @@ export default function KioskPage() {
           </p>
         </div>
 
-        {/* Returning Visitor Quick Lookup */}
-        <div className="w-full md:w-auto bg-slate-950 p-3 rounded-2xl border border-slate-800 flex items-center space-x-2">
-          <input
-            type="text"
-            placeholder="Returning Visitor Mobile / Name..."
-            value={returningSearch}
-            onChange={(e) => setReturningSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearchReturningVisitor()}
-            className="px-3 py-1.5 bg-slate-900 border border-slate-700 text-xs text-white rounded-xl focus:ring-1 focus:ring-brand-gold focus:outline-none"
-          />
-          <button
-            onClick={handleSearchReturningVisitor}
-            disabled={isSearchingReturning}
-            className="px-3 py-1.5 bg-brand-gold text-slate-950 font-bold text-xs rounded-xl hover:bg-amber-400 shrink-0"
-          >
-            {isSearchingReturning ? 'Searching...' : 'Auto-Fill'}
-          </button>
+        {/* Returning Visitor Interactive Search Dropdown */}
+        <div className="relative w-full md:w-96">
+          <label className="block text-[10px] font-extrabold uppercase text-brand-gold mb-1 flex items-center">
+            <History className="w-3 h-3 mr-1" /> Returning Visitor Lookup
+          </label>
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search by name, mobile, or company..."
+              value={returningSearch}
+              onChange={(e) => handleReturningInputChange(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 text-xs text-white rounded-xl focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+            />
+            {isSearchingReturning && (
+              <span className="absolute right-3 top-2.5 text-[10px] font-bold text-amber-400">Searching...</span>
+            )}
+          </div>
+
+          {/* Returning Visitor Results Dropdown List */}
+          {isReturningDropdownOpen && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-700 rounded-2xl max-h-64 overflow-y-auto z-50 shadow-2xl divide-y divide-slate-800">
+              <div className="px-3 py-2 bg-slate-950 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase">
+                <span>Select Visitor to Auto-Fill</span>
+                <button onClick={() => setIsReturningDropdownOpen(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {returningResults.length === 0 ? (
+                <div className="p-4 text-center text-xs text-slate-400 font-semibold">
+                  No past visitor records found for '{returningSearch}'.
+                </div>
+              ) : (
+                returningResults.map((vis) => (
+                  <button
+                    key={vis.id}
+                    type="button"
+                    onClick={() => selectReturningVisitor(vis)}
+                    className="w-full text-left p-3 hover:bg-slate-800 transition flex items-center justify-between group"
+                  >
+                    <div className="flex items-center space-x-3">
+                      {vis.photo_url ? (
+                        <img
+                          src={vis.photo_url}
+                          alt={vis.full_name}
+                          className="w-9 h-9 object-cover rounded-full border border-brand-gold shrink-0"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 bg-slate-950 rounded-full border border-slate-700 flex items-center justify-center text-slate-400 text-xs font-bold shrink-0">
+                          {vis.full_name.charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <span className="font-bold text-white text-xs block group-hover:text-brand-gold transition">
+                          {vis.full_name}
+                        </span>
+                        <span className="text-[11px] text-slate-400 block font-mono">📱 {vis.mobile}</span>
+                      </div>
+                    </div>
+
+                    {vis.company && (
+                      <span className="text-[10px] font-extrabold text-slate-300 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800 truncate max-w-[100px]">
+                        {vis.company}
+                      </span>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {returningMsg && (
-        <div className="p-3 bg-blue-950/80 border border-blue-800 text-blue-300 text-xs font-semibold rounded-2xl">
-          {returningMsg}
+      {selectedVisitorNotice && (
+        <div className="p-3 bg-emerald-950/90 border border-emerald-800 text-emerald-300 text-xs font-bold rounded-2xl flex items-center justify-between">
+          <span>{selectedVisitorNotice}</span>
+          <button onClick={() => setSelectedVisitorNotice(null)} className="text-emerald-400 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
