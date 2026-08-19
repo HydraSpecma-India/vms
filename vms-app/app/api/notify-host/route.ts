@@ -9,7 +9,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'No host email provided' }, { status: 400 });
     }
 
-    // Gmail SMTP credentials or standard fallback
+    // Gmail / SMTP Configuration
     const user = process.env.GMAIL_USER || process.env.SMTP_USER || '';
     const pass = process.env.GMAIL_APP_PASS || process.env.SMTP_PASS || '';
     const host = process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const from = process.env.EMAIL_FROM || `Visitor Management <${user}>`;
 
     if (!user || !pass) {
-      console.warn('Gmail / SMTP credentials not configured, skipping email alert');
+      console.warn('Gmail / SMTP credentials missing, skipping host email alert');
       return NextResponse.json({ message: 'SMTP credentials missing' }, { status: 200 });
     }
 
@@ -33,46 +33,96 @@ export async function POST(request: Request) {
       timeStyle: 'short',
     });
 
+    const attachments: any[] = [];
+    let photoHtml = '';
+
+    // Attach visitor photo if present
+    if (visitor.photo_url) {
+      if (visitor.photo_url.startsWith('data:image')) {
+        // Base64 image attachment
+        const base64Data = visitor.photo_url.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        attachments.push({
+          filename: `${visitor.pass_id}.jpg`,
+          content: buffer,
+          cid: 'visitor_photo_cid',
+        });
+        photoHtml = `<img src="cid:visitor_photo_cid" alt="${visitor.full_name}" style="width: 130px; height: 130px; object-fit: cover; border-radius: 12px; border: 3px solid #ffcc00; display: block; margin: 0 auto;" />`;
+      } else {
+        // External URL image attachment via CID
+        attachments.push({
+          filename: `${visitor.pass_id}.jpg`,
+          path: visitor.photo_url,
+          cid: 'visitor_photo_cid',
+        });
+        photoHtml = `<img src="cid:visitor_photo_cid" alt="${visitor.full_name}" style="width: 130px; height: 130px; object-fit: cover; border-radius: 12px; border: 3px solid #ffcc00; display: block; margin: 0 auto;" />`;
+      }
+    }
+
     const mailOptions = {
       from,
       to: hostEmail,
       subject: `[Visitor Arrival] ${visitor.full_name} has arrived to meet you`,
+      attachments,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <!-- Corporate Header -->
           <div style="background-color: #0f172a; color: #ffffff; padding: 24px; text-align: center;">
-            <h2 style="margin: 0; color: #ffcc00; font-size: 20px;">HydraSpecma Visitor Alert</h2>
-            <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">Visitor Check-In Notification</p>
+            <h2 style="margin: 0; color: #ffcc00; font-size: 22px; font-weight: 800; tracking-wide: 1px;">HYDRASPECMA INDIA</h2>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Visitor Check-In Alert</p>
           </div>
+
+          <!-- Body Content -->
           <div style="padding: 24px; color: #334155;">
-            <p style="font-size: 14px;">Hello,</p>
-            <p style="font-size: 14px;">Your visitor <strong>${visitor.full_name}</strong> from <strong>${visitor.company || 'N/A'}</strong> has checked in at reception.</p>
+            <p style="font-size: 15px; margin-top: 0;">Hello,</p>
+            <p style="font-size: 14px; line-height: 1.5;">
+              Your visitor <strong style="color: #0f172a;">${visitor.full_name}</strong> from <strong>${visitor.company || 'N/A'}</strong> has checked in at reception.
+            </p>
             
-            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #f8fafc; border-radius: 8px; font-size: 13px;">
+            ${
+              photoHtml
+                ? `<div style="text-align: center; margin: 20px 0; padding: 16px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9;">
+                    <p style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; margin: 0 0 10px 0;">Visitor Photo</p>
+                    ${photoHtml}
+                   </div>`
+                : ''
+            }
+
+            <!-- Details Table -->
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: #f8fafc; border-radius: 12px; font-size: 13px; overflow: hidden; border: 1px solid #e2e8f0;">
               <tr>
-                <td style="padding: 10px 14px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #64748b;">Pass ID:</td>
-                <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-family: monospace; font-weight: bold; color: #0284c7;">${visitor.pass_id}</td>
+                <td style="padding: 12px 16px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #64748b; width: 35%;">Pass ID:</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-family: monospace; font-weight: 900; color: #0284c7;">${visitor.pass_id}</td>
               </tr>
               <tr>
-                <td style="padding: 10px 14px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #64748b;">Visitor Name:</td>
-                <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${visitor.full_name}</td>
+                <td style="padding: 12px 16px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #64748b;">Visitor Name:</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #0f172a;">${visitor.full_name}</td>
               </tr>
               <tr>
-                <td style="padding: 10px 14px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #64748b;">Mobile:</td>
-                <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">${visitor.mobile}</td>
+                <td style="padding: 12px 16px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #64748b;">Mobile:</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #0f172a;">${visitor.mobile}</td>
               </tr>
               <tr>
-                <td style="padding: 10px 14px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #64748b;">Purpose of Visit:</td>
-                <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">${visitor.purpose || 'N/A'}</td>
+                <td style="padding: 12px 16px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #64748b;">Company:</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #0f172a;">${visitor.company || '-'}</td>
               </tr>
               <tr>
-                <td style="padding: 10px 14px; font-weight: bold; color: #64748b;">Check-In Time:</td>
-                <td style="padding: 10px 14px;">${checkInTimeStr}</td>
+                <td style="padding: 12px 16px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #64748b;">Purpose of Visit:</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #0f172a;">${visitor.purpose || 'General'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px 16px; font-weight: bold; color: #64748b;">Check-In Time:</td>
+                <td style="padding: 12px 16px; color: #0f172a; font-weight: 600;">${checkInTimeStr}</td>
               </tr>
             </table>
 
-            <p style="font-size: 13px; color: #475569;">Please meet your visitor at the main reception desk.</p>
+            <p style="font-size: 13px; color: #475569; margin-bottom: 0;">
+              Please meet your visitor at the main reception desk.
+            </p>
           </div>
-          <div style="background-color: #0f172a; text-align: center; padding: 14px; font-size: 11px; color: #94a3b8;">
+
+          <!-- Footer -->
+          <div style="background-color: #0f172a; text-align: center; padding: 16px; font-size: 11px; color: #94a3b8;">
             HydraSpecma India Private Limited • Visitor Management System
           </div>
         </div>
@@ -80,7 +130,7 @@ export async function POST(request: Request) {
     };
 
     await transporter.sendMail(mailOptions);
-    return NextResponse.json({ success: true, message: 'Gmail notification sent to host' });
+    return NextResponse.json({ success: true, message: 'Gmail notification with attached photo sent to host' });
   } catch (error: any) {
     console.error('Failed to send Gmail host notification:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
