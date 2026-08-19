@@ -18,7 +18,8 @@
   html, body {
     width: 80mm !important;
     max-width: 80mm !important;
-    height: auto !important;
+    height: 100% !important;
+    max-height: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     background-color: white !important;
@@ -30,30 +31,38 @@
 
   body * {
     visibility: hidden !important;
+    height: 0 !important;
   }
 
   #printable-badge, #printable-badge * {
     visibility: visible !important;
+    height: auto !important;
   }
 
   #printable-badge {
-    position: absolute !important;
+    position: fixed !important;
     left: 0 !important;
     top: 0 !important;
-    width: 80mm !important;
-    max-width: 80mm !important;
-    padding: 4mm 3mm !important;
+    width: 76mm !important;
+    max-width: 76mm !important;
     margin: 0 !important;
+    padding: 2mm !important;
     background-color: white !important;
     color: black !important;
     box-sizing: border-box !important;
-    font-family: Arial, sans-serif !important;
+    font-family: Arial, Helvetica, sans-serif !important;
     page-break-after: avoid !important;
     page-break-before: avoid !important;
     page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-before: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
   }
 
   .no-print {
     display: none !important;
+    height: 0 !important;
+    width: 0 !important;
   }
 }
