@@ -8,47 +8,65 @@
   }
 }
 
-/* Strict Single-Page 80mm Thermal Printer Print Styles */
+/* 80mm Thermal Printer Print Styles */
 @media print {
   @page {
     size: 80mm auto;
-    margin: 0mm !important;
+    margin: 0mm;
   }
-  
+
   html, body {
     width: 80mm !important;
-    max-width: 80mm !important;
-    height: 100% !important;
-    max-height: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    background-color: white !important;
-    color: black !important;
-    overflow: hidden !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  body * {
-    visibility: hidden !important;
-    height: 0 !important;
+  /* Hide all elements marked with no-print */
+  .no-print {
+    display: none !important;
   }
 
-  #printable-badge, #printable-badge * {
-    visibility: visible !important;
+  /* Reset modal backdrop for printing */
+  .print-modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    background-color: #ffffff !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 80mm !important;
     height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    display: block !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .print-modal-container {
+    background-color: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 80mm !important;
+    width: 80mm !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
   }
 
   #printable-badge {
-    position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 76mm !important;
-    max-width: 76mm !important;
+    display: block !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
     margin: 0 !important;
-    padding: 2mm !important;
-    background-color: white !important;
-    color: black !important;
+    padding: 3mm 2mm !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
     box-sizing: border-box !important;
     font-family: Arial, Helvetica, sans-serif !important;
     page-break-after: avoid !important;
@@ -57,12 +75,5 @@
     break-after: avoid !important;
     break-before: avoid !important;
     break-inside: avoid !important;
-    overflow: hidden !important;
-  }
-
-  .no-print {
-    display: none !important;
-    height: 0 !important;
-    width: 0 !important;
   }
 }

@@ -42,9 +42,9 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
   const formattedDateTime = `${day}-${monthStr}-${year} ${formattedHours}:${minutes} ${ampm}`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-800 animate-in fade-in zoom-in duration-200">
-        {/* Header (hidden in print) */}
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto print-modal-backdrop">
+      <div className="bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-800 animate-in fade-in zoom-in duration-200 print-modal-container">
+        {/* Modal Header (hidden in print) */}
         <div className="bg-slate-950 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800 no-print">
           <div className="flex items-center space-x-2">
             <ShieldCheck className="w-5 h-5 text-brand-gold" />
@@ -58,102 +58,102 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
           </button>
         </div>
 
-        {/* 80mm Thermal Printer Printable Area - Guaranteed Single Page */}
-        <div className="p-4 bg-white text-black flex justify-center overflow-x-auto">
+        {/* 80mm Thermal Printer Printable Area */}
+        <div className="p-4 bg-white text-black flex justify-center overflow-x-auto print:p-0 print:bg-white">
           <div
             id="printable-badge"
-            className="w-[260px] sm:w-[270px] bg-white text-black p-2 font-sans flex flex-col items-center border border-slate-300"
+            className="w-[280px] bg-white text-black p-3 font-sans flex flex-col items-center border border-slate-200 print:border-0"
             style={{ color: '#000000', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
           >
             {/* Top Header */}
             <div className="text-center w-full">
-              <h2 className="text-sm font-black tracking-widest uppercase text-black leading-none">
+              <h2 className="text-base font-black tracking-widest uppercase text-black leading-tight">
                 VISITOR PASS
               </h2>
               <div className="font-extrabold text-xs text-black leading-tight mt-0.5">
                 HydraSpecma
               </div>
-              <div className="border-b border-black w-full my-1"></div>
+              <div className="border-b border-black w-full my-1.5"></div>
             </div>
 
             {/* Enclosed Pass ID Box */}
-            <div className="w-full border border-black text-center py-0.5 px-1 my-0.5">
-              <span className="font-mono font-black text-xs tracking-wider text-black">
+            <div className="w-full border border-black text-center py-1 px-1 my-1">
+              <span className="font-mono font-black text-sm tracking-wider text-black">
                 {visitor.pass_id}
               </span>
             </div>
 
-            {/* Compact Photo */}
-            <div className="my-1 flex justify-center">
+            {/* Photo */}
+            <div className="my-2 flex justify-center">
               {visitor.photo_url ? (
                 <img
                   src={visitor.photo_url}
                   alt={visitor.full_name}
-                  className="w-20 h-20 object-cover border border-black rounded-none"
+                  className="w-28 h-28 object-cover border border-black rounded-none"
                 />
               ) : (
-                <div className="w-20 h-20 border border-black flex items-center justify-center text-[9px] font-bold text-black">
+                <div className="w-28 h-28 border border-black flex items-center justify-center text-xs font-bold text-black">
                   [ NO PHOTO ]
                 </div>
               )}
             </div>
 
-            {/* Compact Attribute Rows */}
-            <div className="w-full text-[10px] leading-tight space-y-0.5 my-1">
+            {/* Field Rows */}
+            <div className="w-full text-xs leading-snug space-y-1 my-1.5">
               <div className="flex justify-between border-b border-dotted border-slate-400 pb-0.5">
-                <span className="font-extrabold uppercase w-16">NAME</span>
+                <span className="font-extrabold uppercase w-20">NAME</span>
                 <span className="font-bold text-right flex-1 break-words">{visitor.full_name}</span>
               </div>
 
               <div className="flex justify-between border-b border-dotted border-slate-400 pb-0.5">
-                <span className="font-extrabold uppercase w-16">COMPANY</span>
+                <span className="font-extrabold uppercase w-20">COMPANY</span>
                 <span className="font-medium text-right flex-1 break-words">{visitor.company || '-'}</span>
               </div>
 
               <div className="flex justify-between border-b border-dotted border-slate-400 pb-0.5">
-                <span className="font-extrabold uppercase w-16">MOBILE</span>
+                <span className="font-extrabold uppercase w-20">MOBILE</span>
                 <span className="font-medium text-right flex-1">{visitor.mobile}</span>
               </div>
 
               <div className="flex justify-between border-b border-dotted border-slate-400 pb-0.5">
-                <span className="font-extrabold uppercase w-16">PURPOSE</span>
+                <span className="font-extrabold uppercase w-20">PURPOSE</span>
                 <span className="font-medium text-right flex-1">{visitor.purpose || 'General'}</span>
               </div>
 
               <div className="flex justify-between border-b border-dotted border-slate-400 pb-0.5">
-                <span className="font-extrabold uppercase w-16">VISITORS</span>
+                <span className="font-extrabold uppercase w-20">VISITORS</span>
                 <span className="font-medium text-right flex-1">{visitor.number_of_visitors || 1}</span>
               </div>
             </div>
 
             {/* Enclosed Host Box */}
-            <div className="w-full border border-black p-1 my-0.5 text-left">
-              <span className="font-black text-[9px] uppercase block leading-none">TO MEET:</span>
-              <span className="font-bold text-[11px] block leading-tight">{visitor.who_to_meet || '-'}</span>
+            <div className="w-full border border-black p-1.5 my-1.5 text-left">
+              <span className="font-black text-[10px] uppercase block leading-none">TO MEET:</span>
+              <span className="font-bold text-xs block mt-0.5 leading-tight">{visitor.who_to_meet || '-'}</span>
               {visitor.host_department && (
-                <span className="text-[9px] block text-slate-800 font-semibold leading-none">{visitor.host_department}</span>
+                <span className="text-[10px] block text-slate-800 font-semibold leading-tight">{visitor.host_department}</span>
               )}
             </div>
 
             {/* Check-In Timestamp */}
-            <div className="w-full text-center my-0.5">
-              <div className="border-b border-black w-full mb-0.5"></div>
-              <span className="font-bold text-[9px] uppercase text-black">
-                CHECK-IN: <span className="font-semibold">{formattedDateTime}</span>
+            <div className="w-full text-center my-1.5">
+              <div className="border-b border-black w-full mb-1"></div>
+              <span className="font-bold text-xs uppercase text-black">
+                CHECK-IN: <span className="font-normal">{formattedDateTime}</span>
               </span>
-              <div className="border-b border-black w-full mt-0.5"></div>
+              <div className="border-b border-black w-full mt-1"></div>
             </div>
 
             {/* Host Signature Line */}
-            <div className="w-full text-center mt-3 mb-0.5">
-              <div className="border-b border-black w-2/3 mx-auto mb-0.5"></div>
-              <span className="text-[8px] font-bold text-slate-700 tracking-wider uppercase">
+            <div className="w-full text-center mt-5 mb-1">
+              <div className="border-b border-black w-3/4 mx-auto mb-1"></div>
+              <span className="text-[9px] font-bold text-slate-700 tracking-wider uppercase">
                 HOST SIGNATURE
               </span>
             </div>
 
-            {/* Return Notice Footer */}
-            <div className="w-full text-center mt-0.5 pt-0.5 border-t border-dotted border-slate-400 text-[7.5px] text-slate-700 leading-none space-y-0.5">
+            {/* Security Notice Footer */}
+            <div className="w-full text-center mt-1.5 pt-1.5 border-t border-dotted border-slate-400 text-[8.5px] text-slate-700 leading-tight space-y-0.5">
               <p>This pass must be worn visibly at all times.</p>
               <p>Please return pass at security gate upon departure.</p>
             </div>
@@ -166,7 +166,7 @@ export default function PassBadgeModal({ visitor, onClose }: PassBadgeModalProps
             onClick={handlePrint}
             className="flex-1 inline-flex items-center justify-center px-5 py-3 bg-brand-gold text-slate-950 font-black text-sm rounded-xl hover:bg-amber-400 shadow-xl transition"
           >
-            <Printer className="w-4 h-4 mr-2" /> Print Single-Page 80mm Badge
+            <Printer className="w-4 h-4 mr-2" /> Print 80mm Badge
           </button>
           <button
             onClick={onClose}
