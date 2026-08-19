@@ -3,44 +3,96 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --brand-gold: #FFCC00;
+    --brand-charcoal: #1E2530;
+    --brand-dark: #0F172A;
+  }
+
   body {
-    @apply bg-slate-950 text-slate-100 antialiased font-sans min-h-screen;
+    background-color: #090d16;
+    color: #f8fafc;
+    overflow-x: hidden;
   }
 }
 
-/* 80mm Thermal Printer Print Styles */
-@media print {
-  @page {
-    size: 80mm auto;
-    margin: 0mm !important;
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+  border: 2px solid #090d16;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ffcc00;
+}
 
-  html, body {
+/* Ambient Glow & Card Animations */
+.glow-gold-sm {
+  box-shadow: 0 0 20px -5px rgba(255, 204, 0, 0.15);
+}
+
+.glow-gold-lg {
+  box-shadow: 0 0 35px -5px rgba(255, 204, 0, 0.25);
+}
+
+.glow-emerald-sm {
+  box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.2);
+}
+
+/* Subtle Shimmer & Pulse Effects */
+@keyframes goldPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px 0px rgba(255, 204, 0, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px 4px rgba(255, 204, 0, 0.45);
+  }
+}
+
+.animate-gold-pulse {
+  animation: goldPulse 3s infinite ease-in-out;
+}
+
+/* Glassmorphic Background Blur */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-panel-hover:hover {
+  border-color: rgba(255, 204, 0, 0.4);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 25px -5px rgba(255, 204, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Printable 80mm Badge Rules */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-badge, #printable-badge * {
+    visibility: visible;
+  }
+  #printable-badge {
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 80mm !important;
     max-width: 80mm !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
   }
-
   .no-print {
     display: none !important;
-  }
-
-  #printable-badge {
-    display: block !important;
-    width: 80mm !important;
-    max-width: 80mm !important;
-    margin: 0 !important;
-    padding: 3mm 2mm !important;
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    box-sizing: border-box !important;
-    font-family: Arial, Helvetica, sans-serif !important;
-    page-break-after: avoid !important;
-    page-break-inside: avoid !important;
   }
 }

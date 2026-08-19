@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { hashPasswordAsync, setStoredSession, getStoredSession } from '@/lib/auth';
-import { Shield, User, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { Shield, User, Lock, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
@@ -107,22 +107,25 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-[75vh] flex items-center justify-center p-4 w-full">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-8 text-slate-100 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-400 via-brand-gold to-amber-500"></div>
+    <div className="min-h-[78vh] flex items-center justify-center p-4 w-full relative overflow-hidden">
+      {/* Background Glow Blobs */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-brand-gold/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div className="glass-panel rounded-3xl shadow-2xl max-w-md w-full p-8 text-slate-100 relative overflow-hidden border border-slate-800/80 animate-in fade-in zoom-in duration-300">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-brand-gold to-amber-500"></div>
 
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-brand-gold text-slate-950 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg font-black">
+          <div className="w-16 h-16 bg-brand-gold text-slate-950 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-amber-500/20 font-black animate-gold-pulse">
             <Shield className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">System Login Portal</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-1 font-medium">
             HydraSpecma India Private Limited
           </p>
         </div>
 
         {errorMsg && (
-          <div className="bg-rose-950/60 border border-rose-800 text-rose-300 p-3.5 rounded-xl text-xs font-semibold mb-6 flex items-center">
+          <div className="bg-rose-950/70 border border-rose-800 text-rose-300 p-3.5 rounded-xl text-xs font-semibold mb-6 flex items-center shadow-lg">
             <AlertCircle className="w-4 h-4 mr-2 shrink-0 text-rose-400" />
             {errorMsg}
           </div>
@@ -133,8 +136,8 @@ export default function HomePage() {
             <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
               Username
             </label>
-            <div className="relative">
-              <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+            <div className="relative group">
+              <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5 group-focus-within:text-brand-gold transition-colors" />
               <input
                 type="text"
                 required
@@ -142,7 +145,7 @@ export default function HomePage() {
                 placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+                className="w-full pl-10 pr-3 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:border-brand-gold focus:outline-none transition-all duration-300"
               />
             </div>
           </div>
@@ -151,15 +154,15 @@ export default function HomePage() {
             <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
               Password
             </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+            <div className="relative group">
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5 group-focus-within:text-brand-gold transition-colors" />
               <input
                 type="password"
                 required
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
+                className="w-full pl-10 pr-3 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:border-brand-gold focus:outline-none transition-all duration-300"
               />
             </div>
           </div>
@@ -167,7 +170,7 @@ export default function HomePage() {
           <button
             type="submit"
             disabled={isLoggingIn}
-            className="w-full py-3.5 bg-brand-gold text-slate-950 font-black text-sm rounded-xl hover:bg-amber-400 transition shadow-lg flex items-center justify-center disabled:opacity-50 mt-2"
+            className="w-full py-3.5 bg-brand-gold text-slate-950 font-black text-sm rounded-xl hover:bg-amber-400 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-xl shadow-amber-500/20 flex items-center justify-center disabled:opacity-50 mt-2"
           >
             {isLoggingIn ? (
               'Authenticating...'

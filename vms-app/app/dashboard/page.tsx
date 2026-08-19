@@ -1,271 +1,270 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { getStoredSession } from '@/lib/auth';
-import { LayoutDashboard, Users, UserCheck, LogOut, RefreshCw, Building2, TrendingUp, Clock } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Users,
+  UserCheck,
+  UserX,
+  TrendingUp,
+  Clock,
+  Building,
+  RefreshCw,
+  Sparkles,
+  ArrowUpRight,
+  Shield,
+  Activity,
+} from 'lucide-react';
 
-interface Visitor {
-  id: string;
-  pass_id: string;
-  full_name: string;
-  mobile: string;
-  company?: string;
-  purpose?: string;
-  who_to_meet?: string;
-  host_department?: string;
-  number_of_visitors: number;
-  check_in_time: string;
-  check_out_time?: string;
-  status: string;
+interface VisitorStats {
+  totalToday: number;
+  stillIn: number;
+  signedOutToday: number;
+  totalHistorical: number;
+  departmentBreakdown: { department: string; count: number }[];
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [visitorsToday, setVisitorsToday] = useState<Visitor[]>([]);
-  const [activeVisitors, setActiveVisitors] = useState<Visitor[]>([]);
-  const [signedOutToday, setSignedOutToday] = useState<Visitor[]>([]);
+  const [stats, setStats] = useState<VisitorStats>({
+    totalToday: 0,
+    stillIn: 0,
+    signedOutToday: 0,
+    totalHistorical: 0,
+    departmentBreakdown: [],
+  });
   const [isLoading, setIsLoading] = useState(true);
-
-  const fetchDashboardMetrics = async () => {
-    setIsLoading(true);
-    try {
-      const todayISO = new Date().toISOString().slice(0, 10);
-      const fromTimestamp = `${todayISO}T00:00:00.000Z`;
-
-      // 1. Fetch all check-ins today
-      const { data: todayData, error: todayErr } = await supabase
-        .from('visitors')
-        .select('*')
-        .gte('check_in_time', fromTimestamp)
-        .order('check_in_time', { ascending: false });
-
-      if (todayErr) throw todayErr;
-
-      // 2. Fetch all currently active visitors (including prior days if still active)
-      const { data: activeData, error: activeErr } = await supabase
-        .from('visitors')
-        .select('*')
-        .eq('status', 'active')
-        .order('check_in_time', { ascending: false });
-
-      if (activeErr) throw activeErr;
-
-      const todayList = todayData || [];
-      const activeList = activeData || [];
-      const signedOutList = todayList.filter((v) => v.status === 'signed-out');
-
-      setVisitorsToday(todayList);
-      setActiveVisitors(activeList);
-      setSignedOutToday(signedOutList);
-    } catch (err) {
-      console.error('Error loading dashboard stats:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [lastUpdated, setLastUpdated] = useState<string>('');
 
   useEffect(() => {
-    const session = getStoredSession();
-    if (!session) {
-      router.push('/');
-      return;
-    }
-
-    fetchDashboardMetrics();
-
-    // Subscribe to real-time changes
+    fetchStats();
+    // Realtime Supabase Subscription for Live Updates
     const channel = supabase
-      .channel('realtime_dashboard')
+      .channel('public:visitors')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visitors' }, () => {
-        fetchDashboardMetrics();
+        fetchStats();
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [router]);
+  }, []);
 
-  // Compute department breakdown
-  const deptMap: { [key: string]: number } = {};
-  visitorsToday.forEach((v) => {
-    const dept = v.host_department?.trim() || 'General / Unspecified';
-    deptMap[dept] = (deptMap[dept] || 0) + (v.number_of_visitors || 1);
-  });
+  const fetchStats = async () => {
+    setIsLoading(true);
+    try {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayStartIso = todayStart.toISOString();
 
-  const totalOnSiteGroupCount = activeVisitors.reduce(
-    (sum, v) => sum + (v.number_of_visitors || 1),
-    0
-  );
+      const { data: allData } = await supabase.from('visitors').select('*');
+      const records = allData || [];
+
+      const todayRecords = records.filter(
+        (v) => new Date(v.check_in_time) >= todayStart
+      );
+
+      const stillIn = todayRecords.filter((v) => v.status === 'active').length;
+      const signedOutToday = todayRecords.filter((v) => v.status !== 'active').length;
+
+      // Department breakdown count
+      const deptCounts: { [key: string]: number } = {};
+      todayRecords.forEach((v) => {
+        const dept = v.host_department?.trim() || 'General / Unspecified';
+        deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+      });
+
+      const departmentBreakdown = Object.entries(deptCounts)
+        .map(([department, count]) => ({ department, count }))
+        .sort((a, b) => b.count - a.count);
+
+      setStats({
+        totalToday: todayRecords.length,
+        stillIn,
+        signedOutToday,
+        totalHistorical: records.length,
+        departmentBreakdown,
+      });
+
+      setLastUpdated(new Date().toLocaleTimeString());
+    } catch (err) {
+      console.error('Failed to fetch dashboard stats:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const activeRatio = stats.totalToday > 0 ? Math.round((stats.stillIn / stats.totalToday) * 100) : 0;
 
   return (
-    <div className="space-y-6 w-full">
-      {/* Header Banner */}
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2.5">
-            <LayoutDashboard className="w-6 h-6 text-brand-gold" />
-            <h1 className="text-2xl font-black text-white">Visitor Analytics Dashboard</h1>
+    <div className="space-y-8 w-full">
+      {/* Interactive Header Banner with Glass Glow */}
+      <div className="glass-panel p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20 transition-all duration-700 group-hover:bg-brand-gold/20"></div>
+
+        <div className="relative z-10 flex items-center space-x-4">
+          <div className="bg-brand-gold text-slate-950 p-3.5 rounded-2xl shadow-xl shadow-amber-500/20 font-black animate-gold-pulse">
+            <LayoutDashboard className="w-7 h-7" />
           </div>
-          <p className="text-slate-400 text-xs mt-1">
-            Real-time daily counts & facility occupancy summary for HydraSpecma India.
-          </p>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-2xl font-black text-white tracking-tight">Live Visitor Analytics</h1>
+              <span className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+            </div>
+            <p className="text-slate-400 text-xs mt-1 font-medium">
+              Real-time monitoring of today's visitor flow, active on-site counts, and department volume.
+            </p>
+          </div>
         </div>
 
-        <button
-          onClick={fetchDashboardMetrics}
-          disabled={isLoading}
-          className="inline-flex items-center px-4 py-2.5 bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold rounded-xl hover:bg-slate-700 transition"
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} /> Live Refresh
-        </button>
+        <div className="relative z-10 flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end">
+          <span className="text-[11px] text-slate-400 font-bold bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800/80 flex items-center space-x-1.5">
+            <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Updated: {lastUpdated || 'Live'}</span>
+          </span>
+          <button
+            onClick={fetchStats}
+            className="p-2.5 bg-slate-800/80 hover:bg-brand-gold hover:text-slate-950 text-slate-300 rounded-xl border border-slate-700 transition-all duration-300 shadow hover:scale-105 active:scale-95"
+            title="Refresh Live Data"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      {/* Primary Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Card 1: Today's Total Check-Ins */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+      {/* Interactive Metric Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Today's Total Visited */}
+        <div className="glass-panel glass-panel-hover p-6 rounded-3xl relative overflow-hidden group">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-              Total Visited Today
-            </span>
-            <div className="p-3 bg-amber-400/10 text-brand-gold rounded-2xl">
-              <UserCheck className="w-6 h-6" />
+            <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Today's Visitors</span>
+            <div className="p-2.5 bg-amber-400/10 text-brand-gold rounded-2xl border border-amber-500/20 group-hover:scale-110 transition-transform">
+              <Users className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-4">
-            <span className="text-4xl font-black text-white">{visitorsToday.length}</span>
-            <span className="text-xs text-slate-400 block mt-1">Checked in today</span>
+          <div className="mt-4 flex items-baseline justify-between">
+            <span className="text-4xl font-black text-white tracking-tight">{stats.totalToday}</span>
+            <span className="text-[11px] text-brand-gold font-bold bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+              Today Total
+            </span>
+          </div>
+          <div className="mt-3 w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
+            <div className="bg-brand-gold h-full rounded-full transition-all duration-1000" style={{ width: '100%' }}></div>
           </div>
         </div>
 
-        {/* Card 2: Currently Still In / On-Site */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+        {/* Card 2: Still In (On-Site) */}
+        <div className="glass-panel glass-panel-hover p-6 rounded-3xl relative overflow-hidden group border-emerald-500/20">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold uppercase text-emerald-400 tracking-wider">
-              Still In (On-Site)
-            </span>
-            <div className="p-3 bg-emerald-950 text-emerald-400 rounded-2xl border border-emerald-800">
-              <Users className="w-6 h-6" />
+            <span className="text-xs font-black uppercase text-emerald-400 tracking-wider">Still On-Site (Active)</span>
+            <div className="p-2.5 bg-emerald-400/10 text-emerald-400 rounded-2xl border border-emerald-500/20 group-hover:scale-110 transition-transform">
+              <UserCheck className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-4">
-            <span className="text-4xl font-black text-emerald-400">{activeVisitors.length}</span>
-            <span className="text-xs text-slate-400 block mt-1">
-              Active passes ({totalOnSiteGroupCount} total persons)
+          <div className="mt-4 flex items-baseline justify-between">
+            <span className="text-4xl font-black text-white tracking-tight">{stats.stillIn}</span>
+            <span className="text-[11px] text-emerald-400 font-extrabold bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-800 animate-pulse">
+              {activeRatio}% Active Ratio
             </span>
+          </div>
+          <div className="mt-3 w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
+            <div
+              className="bg-emerald-400 h-full rounded-full transition-all duration-1000"
+              style={{ width: `${activeRatio}%` }}
+            ></div>
           </div>
         </div>
 
         {/* Card 3: Signed Out Today */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+        <div className="glass-panel glass-panel-hover p-6 rounded-3xl relative overflow-hidden group">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-              Signed Out Today
-            </span>
-            <div className="p-3 bg-slate-800 text-slate-300 rounded-2xl">
-              <LogOut className="w-6 h-6" />
+            <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Signed Out Today</span>
+            <div className="p-2.5 bg-slate-800 text-slate-400 rounded-2xl border border-slate-700 group-hover:scale-110 transition-transform">
+              <UserX className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-4">
-            <span className="text-4xl font-black text-white">{signedOutToday.length}</span>
-            <span className="text-xs text-slate-400 block mt-1">Completed visits today</span>
+          <div className="mt-4 flex items-baseline justify-between">
+            <span className="text-4xl font-black text-white tracking-tight">{stats.signedOutToday}</span>
+            <span className="text-[11px] text-slate-400 font-bold bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-800">
+              Departed
+            </span>
+          </div>
+          <div className="mt-3 w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
+            <div
+              className="bg-slate-500 h-full rounded-full transition-all duration-1000"
+              style={{
+                width: stats.totalToday > 0 ? `${(stats.signedOutToday / stats.totalToday) * 100}%` : '0%',
+              }}
+            ></div>
           </div>
         </div>
 
-        {/* Card 4: Occupancy Rate */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+        {/* Card 4: Historical Visitor Archive */}
+        <div className="glass-panel glass-panel-hover p-6 rounded-3xl relative overflow-hidden group">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-              Active Ratio
-            </span>
-            <div className="p-3 bg-brand-gold text-slate-950 rounded-2xl font-black">
-              <TrendingUp className="w-6 h-6" />
+            <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Total Database Logs</span>
+            <div className="p-2.5 bg-blue-400/10 text-blue-400 rounded-2xl border border-blue-500/20 group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-4">
-            <span className="text-4xl font-black text-brand-gold">
-              {visitorsToday.length > 0
-                ? `${Math.round((activeVisitors.length / visitorsToday.length) * 100)}%`
-                : '0%'}
+          <div className="mt-4 flex items-baseline justify-between">
+            <span className="text-4xl font-black text-white tracking-tight">{stats.totalHistorical}</span>
+            <span className="text-[11px] text-blue-400 font-bold bg-blue-950 px-2 py-0.5 rounded-lg border border-blue-900">
+              All Time
             </span>
-            <span className="text-xs text-slate-400 block mt-1">Visitors currently inside</span>
+          </div>
+          <div className="mt-3 w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
+            <div className="bg-blue-400 h-full rounded-full" style={{ width: '100%' }}></div>
           </div>
         </div>
       </div>
 
-      {/* Secondary Grid: Recent Active & Department Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Active Visitors Summary List */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center">
-              <Clock className="w-4 h-4 text-brand-gold mr-2" /> Currently Active On-Site ({activeVisitors.length})
-            </h3>
+      {/* Interactive Department Breakdown Bars */}
+      <div className="glass-panel p-6 rounded-3xl shadow-2xl space-y-5">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="flex items-center space-x-2.5">
+            <Building className="w-5 h-5 text-brand-gold" />
+            <h2 className="text-base font-bold text-white">Today's Host Department Volume</h2>
           </div>
-
-          <div className="space-y-2.5 max-h-80 overflow-y-auto">
-            {activeVisitors.length === 0 ? (
-              <p className="text-center py-8 text-slate-500 text-xs">No active visitors on-site.</p>
-            ) : (
-              activeVisitors.map((v) => (
-                <div
-                  key={v.id}
-                  className="flex items-center justify-between p-3.5 bg-slate-950 border border-slate-800 rounded-2xl"
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="font-mono font-bold text-brand-gold text-xs px-2 py-1 bg-slate-900 rounded border border-slate-800">
-                      {v.pass_id}
-                    </span>
-                    <div>
-                      <h4 className="font-bold text-xs text-white">{v.full_name}</h4>
-                      <span className="text-[11px] text-slate-400 block">
-                        Meeting: <strong className="text-slate-200">{v.who_to_meet}</strong> ({v.host_department})
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right text-[11px] text-slate-400">
-                    <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 font-bold border border-emerald-800 mb-0.5">
-                      Active
-                    </span>
-                    <span className="block text-[10px]">
-                      {new Date(v.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          <span className="text-xs text-slate-400 font-semibold">
+            {stats.departmentBreakdown.length} Active Departments
+          </span>
         </div>
 
-        {/* Department Breakdown Table */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-          <div className="border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center">
-              <Building2 className="w-4 h-4 text-brand-gold mr-2" /> Department Breakdown
-            </h3>
+        {stats.departmentBreakdown.length === 0 ? (
+          <div className="text-center py-10 text-slate-500 text-xs font-semibold">
+            No visitor check-ins recorded today yet.
           </div>
+        ) : (
+          <div className="space-y-4 pt-2">
+            {stats.departmentBreakdown.map((item, idx) => {
+              const percentage = Math.round((item.count / stats.totalToday) * 100);
+              return (
+                <div key={item.department} className="space-y-1.5 group">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-slate-200 group-hover:text-brand-gold transition-colors">
+                      {idx + 1}. {item.department}
+                    </span>
+                    <span className="text-slate-400 font-mono">
+                      {item.count} visitor{item.count > 1 ? 's' : ''} ({percentage}%)
+                    </span>
+                  </div>
 
-          <div className="space-y-2 max-h-80 overflow-y-auto">
-            {Object.keys(deptMap).length === 0 ? (
-              <p className="text-center py-8 text-slate-500 text-xs">No visit data recorded today.</p>
-            ) : (
-              Object.entries(deptMap).map(([dept, count]) => (
-                <div
-                  key={dept}
-                  className="flex items-center justify-between p-3 bg-slate-950 border border-slate-800/80 rounded-xl text-xs"
-                >
-                  <span className="font-semibold text-slate-300">{dept}</span>
-                  <span className="font-black text-brand-gold bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
-                    {count} visitor(s)
-                  </span>
+                  <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                    <div
+                      className="bg-gradient-to-r from-amber-500 to-brand-gold h-full rounded-full transition-all duration-1000 group-hover:brightness-125"
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
                 </div>
-              ))
-            )}
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
