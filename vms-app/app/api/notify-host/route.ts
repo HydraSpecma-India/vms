@@ -11,13 +11,15 @@ export async function POST(request: Request) {
       timeStyle: 'short',
     });
 
+    const targetHostTag = hostEmail ? `<at>${hostEmail}</at>` : `<at>${visitor.who_to_meet}</at>`;
+
     // -------------------------------------------------------------
     // 1. Send Microsoft Teams / Power Automate Webhook Alert
-    // (Uses env TEAMS_WEBHOOK_URL or fallback to your Power Automate URL)
+    // (With @mention tag for host email so Teams pushes notification alert)
     // -------------------------------------------------------------
     const teamsWebhookUrl =
       process.env.TEAMS_WEBHOOK_URL ||
-      'https://defaultd5ae8a953d8445d29b1ee2bb4b68d2.cc.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/a09f461abb564ed495919faf5439f135/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=usPP0fEMAqigfOu86uUfqX2upspjaXlKaXkyxFuuG-A';
+      'https://defaultd5ae8a953d8445d29b1ee2bb4b68d2.cc.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/49c689750fd846579aed627e21865a60/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=pTg0sI-CCOaQuBjIUEl1oluQ3kekOOA5R9amdlq9v-Y';
 
     if (teamsWebhookUrl) {
       try {
@@ -26,7 +28,11 @@ export async function POST(request: Request) {
           '@context': 'http://schema.org/extensions',
           themeColor: 'FFCC00', // HydraSpecma Gold
           summary: `Visitor Arrival: ${visitor.full_name}`,
-          text: `🚨 **Visitor Check-In Alert**: **${visitor.full_name}** from **${visitor.company || 'N/A'}** has arrived to meet **${visitor.who_to_meet}** (${visitor.host_department || 'General'}) at ${checkInTimeStr} (IST). Pass ID: \`${visitor.pass_id}\`.`,
+          text: `🚨 **Visitor Check-In Alert**: Visitor **${visitor.full_name}** from **${
+            visitor.company || 'N/A'
+          }** has arrived at reception to meet ${targetHostTag} (${
+            visitor.host_department || 'General'
+          }) at ${checkInTimeStr} (IST). Pass ID: \`${visitor.pass_id}\`.`,
           sections: [
             {
               activityTitle: `🚨 Visitor Check-In Alert - ${visitor.full_name}`,
@@ -37,18 +43,33 @@ export async function POST(request: Request) {
                 { name: 'Visitor Name:', value: visitor.full_name },
                 { name: 'Mobile:', value: visitor.mobile },
                 { name: 'Company:', value: visitor.company || 'N/A' },
-                { name: 'Host to Meet:', value: visitor.who_to_meet || 'N/A' },
+                { name: 'Host Tagged:', value: targetHostTag },
+                { name: 'Host Email:', value: hostEmail || visitor.who_to_meet },
                 { name: 'Department:', value: visitor.host_department || 'General' },
                 { name: 'Check-In Time:', value: `${checkInTimeStr} (IST)` },
               ],
               markdown: true,
             },
           ],
+          entities: hostEmail
+            ? [
+                {
+                  type: 'mention',
+                  text: `<at>${hostEmail}</at>`,
+                  mentioned: {
+                    id: hostEmail,
+                    name: visitor.who_to_meet || hostEmail,
+                  },
+                },
+              ]
+            : [],
           pass_id: visitor.pass_id,
           full_name: visitor.full_name,
           mobile: visitor.mobile,
           company: visitor.company || 'N/A',
           who_to_meet: visitor.who_to_meet || 'N/A',
+          host_email: hostEmail || '',
+          host_mention: targetHostTag,
           host_department: visitor.host_department || 'General',
           check_in_time: `${checkInTimeStr} (IST)`,
           photo_url: visitor.photo_url || '',
