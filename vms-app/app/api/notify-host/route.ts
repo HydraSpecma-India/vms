@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { sendWhatsAppVisitorAlert } from '@/lib/whatsapp';
 
 export async function POST(request: Request) {
   try {
@@ -14,8 +15,24 @@ export async function POST(request: Request) {
     const targetHostTag = hostEmail ? `<at>${hostEmail}</at>` : `<at>${visitor.who_to_meet}</at>`;
 
     // -------------------------------------------------------------
-    // 1. Send Microsoft Teams / Power Automate Webhook Alert
-    // (With @mention tag for host email so Teams pushes notification alert)
+    // 1. Send WhatsApp Business Cloud API Alert (if configured)
+    // -------------------------------------------------------------
+    try {
+      await sendWhatsAppVisitorAlert({
+        recipientPhone: visitor.mobile || '',
+        visitorName: visitor.full_name,
+        companyName: visitor.company || 'N/A',
+        hostName: visitor.who_to_meet || 'Host',
+        passId: visitor.pass_id,
+        checkInTime: checkInTimeStr,
+        photoUrl: visitor.photo_url,
+      });
+    } catch (waErr) {
+      console.warn('WhatsApp alert dispatch warning:', waErr);
+    }
+
+    // -------------------------------------------------------------
+    // 2. Send Microsoft Teams / Power Automate Webhook Alert
     // -------------------------------------------------------------
     const teamsWebhookUrl =
       process.env.TEAMS_WEBHOOK_URL ||
@@ -88,7 +105,7 @@ export async function POST(request: Request) {
     }
 
     // -------------------------------------------------------------
-    // 2. Send Gmail / SMTP Host Alert
+    // 3. Send Gmail / SMTP Host Alert
     // -------------------------------------------------------------
     const user = process.env.GMAIL_USER || process.env.SMTP_USER || '';
     const pass = process.env.GMAIL_APP_PASS || process.env.SMTP_PASS || '';
@@ -98,7 +115,7 @@ export async function POST(request: Request) {
 
     if (!hostEmail || !user || !pass) {
       console.warn('Gmail credentials missing, completing alert response');
-      return NextResponse.json({ success: true, message: 'Teams / Power Automate webhook triggered successfully' });
+      return NextResponse.json({ success: true, message: 'Teams & WhatsApp webhooks triggered successfully' });
     }
 
     const transporter = nodemailer.createTransport({
@@ -202,7 +219,7 @@ export async function POST(request: Request) {
     };
 
     await transporter.sendMail(mailOptions);
-    return NextResponse.json({ success: true, message: 'Host notification sent via Teams and Gmail' });
+    return NextResponse.json({ success: true, message: 'Host notification sent via Teams, WhatsApp, and Gmail' });
   } catch (error: any) {
     console.error('Failed to send host notification:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
