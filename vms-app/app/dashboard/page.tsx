@@ -52,7 +52,7 @@ export default function DashboardPage() {
 
     // Realtime Supabase Subscription for Live Updates
     const channel = supabase
-      .channel('public:visitors')
+      .channel('public:visitors_dashboard_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visitors' }, () => {
         fetchStats();
       })
@@ -66,38 +66,64 @@ export default function DashboardPage() {
   const fetchStats = async () => {
     setIsLoading(true);
     try {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
+      // Calculate today's date boundaries in Indian Standard Time (IST)
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const todayStartIso = `${year}-${month}-${day}T00:00:00.000Z`;
 
-      const { data: allData } = await supabase.from('visitors').select('*');
-      const records = allData || [];
+      // 1. Total Historical Records (Exact Count)
+      const { count: totalHistoricalCount } = await supabase
+        .from('visitors')
+        .select('*', { count: 'exact', head: true });
 
-      const todayRecords = records.filter(
-        (v) => new Date(v.check_in_time) >= todayStart
-      );
+      // 2. Total Visitors Checked In Today (Exact Count)
+      const { count: totalTodayCount } = await supabase
+        .from('visitors')
+        .select('*', { count: 'exact', head: true })
+        .gte('check_in_time', todayStartIso);
 
-      const stillIn = todayRecords.filter((v) => v.status === 'active').length;
-      const signedOutToday = todayRecords.filter((v) => v.status !== 'active').length;
+      // 3. Still On-Site (Active Status Across Database)
+      const { count: stillInCount } = await supabase
+        .from('visitors')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      // 4. Signed Out Today
+      const { count: signedOutTodayCount } = await supabase
+        .from('visitors')
+        .select('*', { count: 'exact', head: true })
+        .gte('check_in_time', todayStartIso)
+        .neq('status', 'active');
+
+      // 5. Host Department Volume Breakdown for Today
+      const { data: todayDepts } = await supabase
+        .from('visitors')
+        .select('host_department')
+        .gte('check_in_time', todayStartIso);
 
       const deptCounts: { [key: string]: number } = {};
-      todayRecords.forEach((v) => {
-        const dept = v.host_department?.trim() || 'General / Unspecified';
-        deptCounts[dept] = (deptCounts[dept] || 0) + 1;
-      });
+      if (todayDepts) {
+        todayDepts.forEach((v) => {
+          const dept = v.host_department?.trim() || 'General / Unspecified';
+          deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+        });
+      }
 
       const departmentBreakdown = Object.entries(deptCounts)
         .map(([department, count]) => ({ department, count }))
         .sort((a, b) => b.count - a.count);
 
       setStats({
-        totalToday: todayRecords.length,
-        stillIn,
-        signedOutToday,
-        totalHistorical: records.length,
+        totalToday: totalTodayCount || 0,
+        stillIn: stillInCount || 0,
+        signedOutToday: signedOutTodayCount || 0,
+        totalHistorical: totalHistoricalCount || 0,
         departmentBreakdown,
       });
 
-      setLastUpdated(new Date().toLocaleTimeString());
+      setLastUpdated(new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }));
     } catch (err) {
       console.error('Failed to fetch dashboard stats:', err);
     } finally {
@@ -142,7 +168,7 @@ export default function DashboardPage() {
         <div className="relative z-10 flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end">
           <span className="text-[11px] text-slate-400 font-bold bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800/80 flex items-center space-x-1.5">
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Updated: {lastUpdated || 'Live'}</span>
+            <span>Updated: {lastUpdated || 'Live'} (IST)</span>
           </span>
           <button
             onClick={fetchStats}
@@ -192,7 +218,7 @@ export default function DashboardPage() {
           <div className="mt-3 w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-emerald-400 h-full rounded-full transition-all duration-1000"
-              style={{ width: `${activeRatio}%` }}
+              style={{ width: `${Math.min(activeRatio, 100)}%` }}
             ></div>
           </div>
         </div>
@@ -215,7 +241,7 @@ export default function DashboardPage() {
             <div
               className="bg-slate-500 h-full rounded-full transition-all duration-1000"
               style={{
-                width: stats.totalToday > 0 ? `${(stats.signedOutToday / stats.totalToday) * 100}%` : '0%',
+                width: stats.totalToday > 0 ? `${Math.min(Math.round((stats.signedOutToday / stats.totalToday) * 100), 100)}%` : '0%',
               }}
             ></div>
           </div>
@@ -260,7 +286,7 @@ export default function DashboardPage() {
         ) : (
           <div className="space-y-4 pt-2">
             {stats.departmentBreakdown.map((item, idx) => {
-              const percentage = Math.round((item.count / stats.totalToday) * 100);
+              const percentage = stats.totalToday > 0 ? Math.round((item.count / stats.totalToday) * 100) : 0;
               return (
                 <div key={item.department} className="space-y-1.5 group">
                   <div className="flex justify-between text-xs font-bold">
@@ -275,7 +301,7 @@ export default function DashboardPage() {
                   <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800">
                     <div
                       className="bg-gradient-to-r from-amber-500 to-brand-gold h-full rounded-full transition-all duration-1000 group-hover:brightness-125"
-                      style={{ width: `${percentage}%` }}
+                      style={{ width: `${Math.min(percentage, 100)}%` }}
                     ></div>
                   </div>
                 </div>
