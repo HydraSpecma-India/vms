@@ -13,8 +13,12 @@ export async function POST(request: Request) {
 
     // -------------------------------------------------------------
     // 1. Send Microsoft Teams / Power Automate Webhook Alert
+    // (Uses env TEAMS_WEBHOOK_URL or fallback to your Power Automate URL)
     // -------------------------------------------------------------
-    const teamsWebhookUrl = process.env.TEAMS_WEBHOOK_URL || '';
+    const teamsWebhookUrl =
+      process.env.TEAMS_WEBHOOK_URL ||
+      'https://defaultd5ae8a953d8445d29b1ee2bb4b68d2.cc.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/a09f461abb564ed495919faf5439f135/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=usPP0fEMAqigfOu86uUfqX2upspjaXlKaXkyxFuuG-A';
+
     if (teamsWebhookUrl) {
       try {
         const teamsPayload = {
@@ -40,7 +44,6 @@ export async function POST(request: Request) {
               markdown: true,
             },
           ],
-          // Extra direct properties for Power Automate workflow custom triggers
           pass_id: visitor.pass_id,
           full_name: visitor.full_name,
           mobile: visitor.mobile,
@@ -57,7 +60,7 @@ export async function POST(request: Request) {
           body: JSON.stringify(teamsPayload),
         });
 
-        console.log('✅ Microsoft Teams / Power Automate notification sent status:', teamsRes.status);
+        console.log('✅ Microsoft Teams / Power Automate notification status:', teamsRes.status);
       } catch (teamsErr) {
         console.error('Failed to send Teams / Power Automate notification:', teamsErr);
       }
