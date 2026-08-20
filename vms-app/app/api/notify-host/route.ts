@@ -12,16 +12,17 @@ export async function POST(request: Request) {
     });
 
     // -------------------------------------------------------------
-    // 1. Send Microsoft Teams Webhook Alert (if TEAMS_WEBHOOK_URL exists)
+    // 1. Send Microsoft Teams / Power Automate Webhook Alert
     // -------------------------------------------------------------
     const teamsWebhookUrl = process.env.TEAMS_WEBHOOK_URL || '';
     if (teamsWebhookUrl) {
       try {
-        const teamsMessage = {
+        const teamsPayload = {
           '@type': 'MessageCard',
           '@context': 'http://schema.org/extensions',
           themeColor: 'FFCC00', // HydraSpecma Gold
           summary: `Visitor Arrival: ${visitor.full_name}`,
+          text: `🚨 **Visitor Check-In Alert**: **${visitor.full_name}** from **${visitor.company || 'N/A'}** has arrived to meet **${visitor.who_to_meet}** (${visitor.host_department || 'General'}) at ${checkInTimeStr} (IST). Pass ID: \`${visitor.pass_id}\`.`,
           sections: [
             {
               activityTitle: `🚨 Visitor Check-In Alert - ${visitor.full_name}`,
@@ -39,16 +40,26 @@ export async function POST(request: Request) {
               markdown: true,
             },
           ],
+          // Extra direct properties for Power Automate workflow custom triggers
+          pass_id: visitor.pass_id,
+          full_name: visitor.full_name,
+          mobile: visitor.mobile,
+          company: visitor.company || 'N/A',
+          who_to_meet: visitor.who_to_meet || 'N/A',
+          host_department: visitor.host_department || 'General',
+          check_in_time: `${checkInTimeStr} (IST)`,
+          photo_url: visitor.photo_url || '',
         };
 
-        await fetch(teamsWebhookUrl, {
+        const teamsRes = await fetch(teamsWebhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(teamsMessage),
+          body: JSON.stringify(teamsPayload),
         });
-        console.log('✅ Microsoft Teams notification sent successfully');
+
+        console.log('✅ Microsoft Teams / Power Automate notification sent status:', teamsRes.status);
       } catch (teamsErr) {
-        console.error('Failed to send Teams Webhook notification:', teamsErr);
+        console.error('Failed to send Teams / Power Automate notification:', teamsErr);
       }
     }
 
@@ -62,8 +73,8 @@ export async function POST(request: Request) {
     const from = process.env.EMAIL_FROM || `Visitor Management <${user}>`;
 
     if (!hostEmail || !user || !pass) {
-      console.warn('Gmail credentials or host email missing, completing alert');
-      return NextResponse.json({ success: true, message: 'Teams webhook processed (Gmail skipped if unconfigured)' });
+      console.warn('Gmail credentials missing, completing alert response');
+      return NextResponse.json({ success: true, message: 'Teams / Power Automate webhook triggered successfully' });
     }
 
     const transporter = nodemailer.createTransport({
