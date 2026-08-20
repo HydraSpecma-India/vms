@@ -5,20 +5,65 @@ export async function POST(request: Request) {
   try {
     const { visitor, hostEmail } = await request.json();
 
-    if (!hostEmail) {
-      return NextResponse.json({ message: 'No host email provided' }, { status: 400 });
+    const checkInTimeStr = new Date(visitor.check_in_time).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      dateStyle: 'full',
+      timeStyle: 'short',
+    });
+
+    // -------------------------------------------------------------
+    // 1. Send Microsoft Teams Webhook Alert (if TEAMS_WEBHOOK_URL exists)
+    // -------------------------------------------------------------
+    const teamsWebhookUrl = process.env.TEAMS_WEBHOOK_URL || '';
+    if (teamsWebhookUrl) {
+      try {
+        const teamsMessage = {
+          '@type': 'MessageCard',
+          '@context': 'http://schema.org/extensions',
+          themeColor: 'FFCC00', // HydraSpecma Gold
+          summary: `Visitor Arrival: ${visitor.full_name}`,
+          sections: [
+            {
+              activityTitle: `🚨 Visitor Check-In Alert - ${visitor.full_name}`,
+              activitySubtitle: `HydraSpecma India Visitor Management System`,
+              activityImage: visitor.photo_url || 'https://vms-hydraspecma.vercel.app/favicon.ico',
+              facts: [
+                { name: 'Pass ID:', value: visitor.pass_id },
+                { name: 'Visitor Name:', value: visitor.full_name },
+                { name: 'Mobile:', value: visitor.mobile },
+                { name: 'Company:', value: visitor.company || 'N/A' },
+                { name: 'Host to Meet:', value: visitor.who_to_meet || 'N/A' },
+                { name: 'Department:', value: visitor.host_department || 'General' },
+                { name: 'Check-In Time:', value: `${checkInTimeStr} (IST)` },
+              ],
+              markdown: true,
+            },
+          ],
+        };
+
+        await fetch(teamsWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(teamsMessage),
+        });
+        console.log('✅ Microsoft Teams notification sent successfully');
+      } catch (teamsErr) {
+        console.error('Failed to send Teams Webhook notification:', teamsErr);
+      }
     }
 
-    // Gmail / SMTP Configuration
+    // -------------------------------------------------------------
+    // 2. Send Gmail / SMTP Host Alert
+    // -------------------------------------------------------------
     const user = process.env.GMAIL_USER || process.env.SMTP_USER || '';
     const pass = process.env.GMAIL_APP_PASS || process.env.SMTP_PASS || '';
     const host = process.env.SMTP_HOST || 'smtp.gmail.com';
     const port = Number(process.env.SMTP_PORT) || 465;
     const from = process.env.EMAIL_FROM || `Visitor Management <${user}>`;
 
-    if (!user || !pass) {
-      console.warn('Gmail / SMTP credentials missing, skipping host email alert');
-      return NextResponse.json({ message: 'SMTP credentials missing' }, { status: 200 });
+    if (!hostEmail || !user || !pass) {
+      console.warn('Gmail credentials or host email missing, completing alert');
+      return NextResponse.json({ success: true, message: 'Teams webhook processed (Gmail skipped if unconfigured)' });
     }
 
     const transporter = nodemailer.createTransport({
@@ -28,17 +73,9 @@ export async function POST(request: Request) {
       auth: { user, pass },
     });
 
-    // Format strictly in Indian Standard Time (IST - Asia/Kolkata)
-    const checkInTimeStr = new Date(visitor.check_in_time).toLocaleString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      dateStyle: 'full',
-      timeStyle: 'short',
-    });
-
     const attachments: any[] = [];
     let photoHtml = '';
 
-    // Attach visitor photo if present
     if (visitor.photo_url) {
       if (visitor.photo_url.startsWith('data:image')) {
         const base64Data = visitor.photo_url.replace(/^data:image\/\w+;base64,/, '');
@@ -130,9 +167,9 @@ export async function POST(request: Request) {
     };
 
     await transporter.sendMail(mailOptions);
-    return NextResponse.json({ success: true, message: 'Gmail notification sent in Indian Standard Time (IST)' });
+    return NextResponse.json({ success: true, message: 'Host notification sent via Teams and Gmail' });
   } catch (error: any) {
-    console.error('Failed to send Gmail host notification:', error);
+    console.error('Failed to send host notification:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
