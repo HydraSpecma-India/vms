@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getStoredSession, UserSession } from '@/lib/auth';
 import { Search, UserCog, Upload, Users, Building, Mail, Briefcase, FileSpreadsheet } from 'lucide-react';
@@ -14,6 +15,9 @@ interface Employee {
 }
 
 export default function EmployeesPage() {
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('All');
@@ -25,9 +29,15 @@ export default function EmployeesPage() {
   const [importStatus, setImportStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    setSession(getStoredSession());
+    const s = getStoredSession();
+    if (!s) {
+      router.push('/');
+      return;
+    }
+    setSession(s);
+    setIsAuthenticated(true);
     fetchEmployees();
-  }, []);
+  }, [router]);
 
   const fetchEmployees = async () => {
     setIsLoading(true);
@@ -61,7 +71,7 @@ export default function EmployeesPage() {
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
-        if (i === 0 && line.toLowerCase().includes('display_name')) continue; // skip header
+        if (i === 0 && line.toLowerCase().includes('display_name')) continue;
 
         const parts = line.split(',');
         if (parts.length >= 1) {
@@ -95,6 +105,14 @@ export default function EmployeesPage() {
       setImportStatus(`Import failed: ${err.message}`);
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-slate-400 text-xs font-semibold">
+        Authenticating session...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 w-full">

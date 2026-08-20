@@ -25,6 +25,8 @@ interface Visitor {
 
 export default function ReportsPage() {
   const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -41,6 +43,7 @@ export default function ReportsPage() {
       router.push('/');
       return;
     }
+    setIsAuthenticated(true);
     fetchVisitors();
   }, [router]);
 
@@ -86,6 +89,14 @@ export default function ReportsPage() {
       (v.who_to_meet && v.who_to_meet.toLowerCase().includes(q))
     );
   });
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-slate-400 text-xs font-semibold">
+        Authenticating session...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 w-full">

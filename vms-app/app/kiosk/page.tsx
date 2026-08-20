@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { getStoredSession } from '@/lib/auth';
 import PassBadgeModal from '@/components/PassBadgeModal';
 import { saveVisitorOffline } from '@/lib/offlineSync';
 import {
@@ -53,6 +55,9 @@ const PURPOSES = [
 ];
 
 export default function KioskPage() {
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   // Form Fields
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
@@ -87,8 +92,14 @@ export default function KioskPage() {
   const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
 
   useEffect(() => {
+    const s = getStoredSession();
+    if (!s) {
+      router.push('/');
+      return;
+    }
+    setIsAuthenticated(true);
     fetchEmployees();
-  }, []);
+  }, [router]);
 
   const fetchEmployees = async () => {
     try {
@@ -163,7 +174,6 @@ export default function KioskPage() {
         .limit(10);
 
       if (data) {
-        // Filter out duplicate names/mobiles for clean selection
         const uniqueMap = new Map();
         data.forEach((v) => {
           const key = v.mobile ? v.mobile : v.full_name.toLowerCase();
@@ -350,6 +360,14 @@ export default function KioskPage() {
       (emp.department && emp.department.toLowerCase().includes(q))
     );
   });
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-slate-400 text-xs font-semibold">
+        Authenticating session...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 w-full">

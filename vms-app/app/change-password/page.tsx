@@ -17,7 +17,7 @@ export default function ChangePasswordPage() {
   useEffect(() => {
     const s = getStoredSession();
     if (!s) {
-      router.push('/login');
+      router.push('/');
     } else {
       setSession(s);
     }
@@ -61,51 +61,58 @@ export default function ChangePasswordPage() {
       };
       setStoredSession(updatedSession);
 
-      router.push(session.role === 'admin' ? '/admin' : '/');
+      alert('Password updated successfully!');
+      router.push(session.role === 'admin' ? '/admin' : '/kiosk');
     } catch (err: any) {
-      console.error('Password change error:', err);
+      console.error('Failed to change password:', err);
       setErrorMsg(err.message || 'Failed to update password.');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  if (!session) return null;
+  if (!session) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-slate-400 text-xs font-semibold">
+        Authenticating session...
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-[75vh] flex items-center justify-center p-4">
+    <div className="min-h-[70vh] flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl max-w-md w-full p-8 text-slate-100 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-400 via-brand-gold to-amber-500"></div>
 
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-brand-gold text-slate-950 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-amber-400/20 text-brand-gold border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <KeyRound className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Change Initial Password</h1>
-          <p className="text-xs text-amber-400 font-semibold mt-1">
-            Mandatory security update required for user <strong className="text-white">'{session.username}'</strong>.
+          <h1 className="text-2xl font-black text-white">Update Password Required</h1>
+          <p className="text-xs text-slate-400 mt-1">
+            First-time login detected for account <strong className="text-white">{session.username}</strong>. Please set a new password.
           </p>
         </div>
 
         {errorMsg && (
-          <div className="bg-rose-950/60 border border-rose-800 text-rose-300 p-3.5 rounded-xl text-xs font-semibold mb-6 flex items-center">
+          <div className="bg-rose-950/80 border border-rose-800 text-rose-300 p-3.5 rounded-xl text-xs font-semibold mb-6 flex items-center shadow">
             <AlertCircle className="w-4 h-4 mr-2 shrink-0 text-rose-400" />
             {errorMsg}
           </div>
         )}
 
-        <form onSubmit={handleChangePassword} className="space-y-5">
+        <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
-              New Password
+              New Password *
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
               <input
                 type="password"
                 required
-                autoFocus
-                placeholder="Enter new secure password..."
+                minLength={5}
+                placeholder="Enter new secure password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
@@ -115,14 +122,15 @@ export default function ChangePasswordPage() {
 
           <div>
             <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
-              Confirm New Password
+              Confirm New Password *
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
               <input
                 type="password"
                 required
-                placeholder="Re-enter new password..."
+                minLength={5}
+                placeholder="Re-enter new password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-brand-gold focus:outline-none transition"
@@ -139,7 +147,7 @@ export default function ChangePasswordPage() {
               'Updating Password...'
             ) : (
               <>
-                <CheckCircle2 className="w-4 h-4 mr-2" /> Update Password & Continue
+                <CheckCircle2 className="w-4 h-4 mr-2" /> Save & Continue to System
               </>
             )}
           </button>

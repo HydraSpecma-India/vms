@@ -95,14 +95,16 @@ export default function AdminPage() {
   const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     const s = getStoredSession();
     if (!s || s.role !== 'admin') {
-      router.push('/login');
+      router.push('/');
       return;
     }
+    setIsAuthenticated(true);
     fetchVisitors();
     fetchEmployees();
     fetchUsers();
@@ -325,6 +327,14 @@ export default function AdminPage() {
       (emp.email && emp.email.toLowerCase().includes(q))
     );
   });
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-slate-400 text-xs font-semibold">
+        Authenticating admin session...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 w-full">

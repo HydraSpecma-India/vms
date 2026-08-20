@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { getStoredSession } from '@/lib/auth';
 import {
   LayoutDashboard,
   Users,
@@ -26,6 +28,9 @@ interface VisitorStats {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [stats, setStats] = useState<VisitorStats>({
     totalToday: 0,
     stillIn: 0,
@@ -37,7 +42,14 @@ export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
   useEffect(() => {
+    const s = getStoredSession();
+    if (!s) {
+      router.push('/');
+      return;
+    }
+    setIsAuthenticated(true);
     fetchStats();
+
     // Realtime Supabase Subscription for Live Updates
     const channel = supabase
       .channel('public:visitors')
@@ -49,14 +61,13 @@ export default function DashboardPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [router]);
 
   const fetchStats = async () => {
     setIsLoading(true);
     try {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-      const todayStartIso = todayStart.toISOString();
 
       const { data: allData } = await supabase.from('visitors').select('*');
       const records = allData || [];
@@ -68,7 +79,6 @@ export default function DashboardPage() {
       const stillIn = todayRecords.filter((v) => v.status === 'active').length;
       const signedOutToday = todayRecords.filter((v) => v.status !== 'active').length;
 
-      // Department breakdown count
       const deptCounts: { [key: string]: number } = {};
       todayRecords.forEach((v) => {
         const dept = v.host_department?.trim() || 'General / Unspecified';
@@ -96,6 +106,14 @@ export default function DashboardPage() {
   };
 
   const activeRatio = stats.totalToday > 0 ? Math.round((stats.stillIn / stats.totalToday) * 100) : 0;
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center text-slate-400 text-xs font-semibold">
+        Authenticating session...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 w-full">
